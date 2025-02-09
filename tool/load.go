@@ -212,7 +212,7 @@ func FilterNoTestFiles(fi fs.FileInfo) bool {
 	switch path.Ext(fname) {
 	case ".gox":
 		suffix = "test.gox"
-	case ".gop":
+	case ".code":
 		suffix = "_test.gop"
 	case ".go":
 		suffix = "_test.go"

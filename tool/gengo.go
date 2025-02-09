@@ -130,7 +130,7 @@ func genGoEntry(list *errors.List, path string, d fs.DirEntry, conf *Config, fla
 		if d.IsDir() {
 			return filepath.SkipDir
 		}
-	} else if !d.IsDir() && strings.HasSuffix(fname, ".gop") {
+	} else if !d.IsDir() && strings.HasSuffix(fname, ".code") {
 		if e := genGoSingleFile(path, conf, flags); e != nil && notIgnNotated(e, conf) {
 			if flags&GenFlagPrintError != 0 {
 				fmt.Fprintln(os.Stderr, e)
@@ -143,7 +143,7 @@ func genGoEntry(list *errors.List, path string, d fs.DirEntry, conf *Config, fla
 
 func genGoSingleFile(file string, conf *Config, flags GenFlags) (err error) {
 	dir, fname := filepath.Split(file)
-	autogen := dir + strings.TrimSuffix(fname, ".gop") + "_autogen.go"
+	autogen := dir + strings.TrimSuffix(fname, ".code") + "_autogen.go"
 	if (flags & GenFlagPrompt) != 0 {
 		fmt.Fprintln(os.Stderr, "GenGo", file, "...")
 	}
@@ -276,7 +276,7 @@ func GenGoFiles(autogen string, files []string, conf *Config) (outFiles []string
 		if len(files) == 1 {
 			file := files[0]
 			srcDir, fname := filepath.Split(file)
-			if hasMultiFiles(srcDir, ".gop") {
+			if hasMultiFiles(srcDir, ".code") {
 				autogen = filepath.Join(srcDir, "gop_autogen_"+fname+".go")
 			}
 		}

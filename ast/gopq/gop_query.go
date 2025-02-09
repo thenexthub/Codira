@@ -50,12 +50,12 @@ type NodeSet struct {
 	Err  error
 }
 
-// NewSource calls ParseFile for all files with names ending in ".gop" in the
+// NewSource calls ParseFile for all files with names ending in ".code" in the
 // directory specified by path and returns a map of package name -> package
 // AST with all the packages found.
 //
 // If filter != nil, only the files with fs.FileInfo entries passing through
-// the filter (and ending in ".gop") are considered. The mode bits are passed
+// the filter (and ending in ".code") are considered. The mode bits are passed
 // to ParseFile unchanged. Position information is recorded in fset, which
 // must not be nil.
 //
@@ -73,12 +73,12 @@ func NewSource(
 	return NodeSet{Data: &oneNode{astPackages(pkgs)}}, nil
 }
 
-// NewSourceFrom calls ParseFile for all files with names ending in ".gop" in the
+// NewSourceFrom calls ParseFile for all files with names ending in ".code" in the
 // directory specified by path and returns a map of package name -> package
 // AST with all the packages found.
 //
 // If filter != nil, only the files with fs.FileInfo entries passing through
-// the filter (and ending in ".gop") are considered. The mode bits are passed
+// the filter (and ending in ".code") are considered. The mode bits are passed
 // to ParseFile unchanged. Position information is recorded in fset, which
 // must not be nil.
 //

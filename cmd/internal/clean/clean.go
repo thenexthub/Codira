@@ -46,7 +46,7 @@ func cleanAGFiles(dir string, execAct bool) {
 		}
 		if fi.IsDir() {
 			pkgDir := filepath.Join(dir, fname)
-			if fname == ".gop" {
+			if fname == ".code" {
 				removeGopDir(pkgDir, execAct)
 			} else {
 				cleanAGFiles(pkgDir, execAct)

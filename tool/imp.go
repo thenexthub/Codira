@@ -235,7 +235,7 @@ func dirHash(mod *gopmod.Module, gop *env.Gop, dir string, self bool) string {
 
 func canCl(mod *gopmod.Module, fname string) bool {
 	switch path.Ext(fname) {
-	case ".go", ".gop", ".gox":
+	case ".go", ".code", ".gox":
 		return true
 	default:
 		ext := modfile.ClassExt(fname)

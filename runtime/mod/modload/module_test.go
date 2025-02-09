@@ -210,7 +210,7 @@ func TestSaveDefault(t *testing.T) {
 
 func TestSave(t *testing.T) {
 	dir := ".gop/_tempdir"
-	os.RemoveAll(".gop")
+	os.RemoveAll(".code")
 	os.MkdirAll(dir, 0777)
 	mod, err := Create(dir, "github.com/foo/bar", "", "")
 	if err != nil {
@@ -264,7 +264,7 @@ require (
 	github.com/qiniu/x v1.13.0
 )
 `), 0666)
-	if err = mod.SaveWithGopMod(&env.Gop{Version: "v1.2.0 devel", Root: ".gop"}, FlagDepModGop|FlagDepModX); err != nil {
+	if err = mod.SaveWithGopMod(&env.Gop{Version: "v1.2.0 devel", Root: ".code"}, FlagDepModGop|FlagDepModX); err != nil {
 		t.Fatal("mod.SaveWithGopMod 2:", err)
 	}
 	if b, err := mod.File.Format(); err != nil {
@@ -286,11 +286,11 @@ require (
 	}
 
 	// SaveWithGopMod again. noop.
-	if err = mod.SaveWithGopMod(&env.Gop{Version: "v1.2.0 devel", Root: ".gop"}, FlagDepModGop|FlagDepModX); err != nil {
+	if err = mod.SaveWithGopMod(&env.Gop{Version: "v1.2.0 devel", Root: ".code"}, FlagDepModGop|FlagDepModX); err != nil {
 		log.Fatal("mod.SaveWithGopMod 3:", err)
 	}
 
-	if err = mod.updateWorkfile(&env.Gop{Version: "v1.2.0 devel", Root: ".gop"}, ""); err != nil {
+	if err = mod.updateWorkfile(&env.Gop{Version: "v1.2.0 devel", Root: ".code"}, ""); err != nil {
 		log.Fatal("updateWorkfile:", err)
 	}
 

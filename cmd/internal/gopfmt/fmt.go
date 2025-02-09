@@ -94,7 +94,7 @@ func gopfmt(path string, class, smart, mvgo bool) (err error) {
 		return nil
 	}
 	if mvgo {
-		newPath := strings.TrimSuffix(path, ".go") + ".gop"
+		newPath := strings.TrimSuffix(path, ".go") + ".code"
 		if err = os.WriteFile(newPath, target, 0666); err != nil {
 			return
 		}
@@ -144,7 +144,7 @@ func (w *walker) walk(path string, d fs.DirEntry, err error) error {
 			if mod, err := tool.LoadMod(path); err == nil {
 				fn = func(ext string) (ok bool, class bool) {
 					switch ext {
-					case ".go", ".gop":
+					case ".go", ".code":
 						ok = true
 					case ".gox", ".spx", ".gmx":
 						ok, class = true, true
@@ -157,7 +157,7 @@ func (w *walker) walk(path string, d fs.DirEntry, err error) error {
 			} else {
 				fn = func(ext string) (ok bool, class bool) {
 					switch ext {
-					case ".go", ".gop":
+					case ".go", ".code":
 						ok = true
 					case ".gox", ".spx", ".gmx":
 						ok, class = true, true
