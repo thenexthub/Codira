@@ -1,0 +1,96 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Check goreleaser files
+      run: |
+        pip install --no-input pyyaml
+        python .github/workflows/check_goreleaser_config.py
+
+    - name: Install Snapcraft
+      uses: samuelmeuli/action-snapcraft@v3
+
+    - name: Checkout tag
+      run: |
+        git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+        tag_name="${GITHUB_REF##*/}"
+        echo Current tag: $tag_name
+        git checkout $tag_name
+        echo "TAG_NAME=${tag_name}" >> $GITHUB_ENV
+
+    - name: Check VERSION consistency
+      run: |
+        tag=$(git describe --tags --dirty)
+        version=$(cat VERSION)
+        if [ "$tag" != "$version" ]; then
+          # if tag is vX.Y.Z-pN and version is vX.Y.Z then it's ok
+          if [[ $tag == $version-p* ]] && [[ ${tag#"$version"} =~ ^-p[0-9]+$ ]]; then
+            echo "This is a patch version"
+            exit 0
+          fi
+          echo "VERSION file is not consistent with tag name"
+          echo "VERSION: $version"
+          echo "TAG: $tag"
+          exit 1
+        fi
+
+    - name: Check pre-release
+      run: |
+        version=$(cat VERSION)
+        # check stable version format x.x.x
+        if ! [[ $version =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "This is a pre-release"
+          echo "IS_PRERELEASE=true" >> $GITHUB_ENV
+        fi
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: 1.21.x
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+
+    - name: Release with goreleaser
+      uses: goreleaser/goreleaser-action@v6
+      with:
+        # either 'goreleaser' (default) or 'goreleaser-pro'
+        distribution: goreleaser
+        version: latest
+        args: release --clean -p 4
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        WINGET_PKGS_PRIVATE_KEY: ${{ secrets.WINGET_PKGS_PRIVATE_KEY }}
+
+    - name: Upload deb/rpm to Fury.io
+      if: env.IS_PRERELEASE != 'true'
+      run: |
+        for file in .dist/*.{deb,rpm}
+        do
+          echo "Uploading $file to Fury.io"
+          CODE=`curl --write-out '%{http_code}' --output /dev/null -sS -F package=@$file https://$FURY_TOKEN@push.fury.io/$GITHUB_REPOSITORY_OWNER/`
+          if [ "$CODE" != "200" ]; then
+            echo "Upload failed with code $CODE"
+            exit 1
+          fi
+        done
+      env:
+        FURY_TOKEN: ${{ secrets.FURY_TOKEN }}

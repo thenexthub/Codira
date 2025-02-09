@@ -1,0 +1,173 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ */
+
+package ssa
+
+import (
+	"go/token"
+	"go/types"
+	"strconv"
+
+	"github.com/goplus/llvm"
+)
+
+// -----------------------------------------------------------------------------
+
+// func(c.Pointer) c.Pointer
+func (p Program) tyRoutine() *types.Signature {
+	if p.routineTy == nil {
+		paramPtr := types.NewParam(token.NoPos, nil, "", p.VoidPtr().raw.Type)
+		params := types.NewTuple(paramPtr)
+		p.routineTy = types.NewSignatureType(nil, nil, nil, params, params, false)
+	}
+	return p.routineTy
+}
+
+func (b Builder) pthreadCreate(pp, attr, routine, arg Expr) Expr {
+	fn := b.Pkg.rtFunc("CreateThread")
+	return b.Call(fn, pp, attr, routine, arg)
+}
+
+// -----------------------------------------------------------------------------
+
+// The Go instruction creates a new goroutine and calls the specified
+// function within it.
+//
+// Example printed form:
+//
+//	go println(t0, t1)
+//	go t3()
+//	go invoke t5.Println(...t6)
+func (b Builder) Go(fn Expr, args ...Expr) {
+	if debugInstr {
+		logCall("Go", fn, args)
+	}
+
+	prog := b.Prog
+	pkg := b.Pkg
+
+	var offset int
+	if fn.kind != vkBuiltin {
+		offset = 1
+	}
+	typs := make([]Type, len(args)+offset)
+	flds := make([]llvm.Value, len(args)+offset)
+	if offset == 1 {
+		typs[0] = fn.Type
+		flds[0] = fn.impl
+	}
+	for i, arg := range args {
+		typs[i+offset] = arg.Type
+		flds[i+offset] = arg.impl
+	}
+	t := prog.Struct(typs...)
+	voidPtr := prog.VoidPtr()
+	data := Expr{b.aggregateMalloc(t, flds...), voidPtr}
+	size := prog.SizeOf(voidPtr)
+	pthd := b.Alloca(prog.IntVal(uint64(size), prog.Uintptr()))
+	b.pthreadCreate(pthd, prog.Nil(voidPtr), pkg.routine(t, fn, len(args)), data)
+}
+
+func (p Package) routineName() string {
+	p.iRoutine++
+	return p.Path() + "._llgo_routine$" + strconv.Itoa(p.iRoutine)
+}
+
+func (p Package) routine(t Type, fn Expr, n int) Expr {
+	prog := p.Prog
+	routine := p.NewFunc(p.routineName(), prog.tyRoutine(), InC)
+	b := routine.MakeBody(1)
+	param := routine.Param(0)
+	data := Expr{llvm.CreateLoad(b.impl, t.ll, param.impl), t}
+	args := make([]Expr, n)
+	var offset int
+	if fn.kind != vkBuiltin {
+		fn = b.getField(data, 0)
+		offset = 1
+	}
+	for i := 0; i < n; i++ {
+		args[i] = b.getField(data, i+offset)
+	}
+	b.Call(fn, args...)
+	b.free(param)
+	b.Return(prog.Nil(prog.VoidPtr()))
+	return routine.Expr
+}
+
+// -----------------------------------------------------------------------------
+
+// func(c.Pointer)
+func (p Program) tyDestruct() *types.Signature {
+	if p.destructTy == nil {
+		paramPtr := types.NewParam(token.NoPos, nil, "", p.VoidPtr().raw.Type)
+		params := types.NewTuple(paramPtr)
+		p.destructTy = types.NewSignatureType(nil, nil, nil, params, nil, false)
+	}
+	return p.destructTy
+}
+
+// func(*c.Int, func(c.Pointer)) c.Int
+func (p Program) tyPthreadKeyCreate() *types.Signature {
+	if p.createKeyTy == nil {
+		cint := p.CInt()
+		cintPtr := p.Pointer(cint)
+		paramCintPtr := types.NewParam(token.NoPos, nil, "", cintPtr.raw.Type)
+		paramDestruct := types.NewParam(token.NoPos, nil, "", p.tyDestruct())
+		paramCInt := types.NewParam(token.NoPos, nil, "", cint.raw.Type)
+		params := types.NewTuple(paramCintPtr, paramDestruct)
+		results := types.NewTuple(paramCInt)
+		p.createKeyTy = types.NewSignatureType(nil, nil, nil, params, results, false)
+	}
+	return p.createKeyTy
+}
+
+func (b Builder) pthreadKeyCreate(key, destruct Expr) Expr {
+	fn := b.Pkg.cFunc("pthread_key_create", b.Prog.tyPthreadKeyCreate())
+	return b.Call(fn, key, destruct)
+}
+
+// -----------------------------------------------------------------------------
+
+// func(c.Int) c.Pointer
+func (p Program) tyPthreadGetspecific() *types.Signature {
+	if p.getSpecTy == nil {
+		paramCInt := types.NewParam(token.NoPos, nil, "", p.CInt().raw.Type)
+		paramPtr := types.NewParam(token.NoPos, nil, "", p.VoidPtr().raw.Type)
+		params := types.NewTuple(paramCInt)
+		results := types.NewTuple(paramPtr)
+		p.getSpecTy = types.NewSignatureType(nil, nil, nil, params, results, false)
+	}
+	return p.getSpecTy
+}
+
+// func(c.Int, c.Pointer) c.Int
+func (p Program) tyPthreadSetspecific() *types.Signature {
+	if p.setSpecTy == nil {
+		paramCInt := types.NewParam(token.NoPos, nil, "", p.CInt().raw.Type)
+		paramPtr := types.NewParam(token.NoPos, nil, "", p.VoidPtr().raw.Type)
+		params := types.NewTuple(paramCInt, paramPtr)
+		results := types.NewTuple(paramCInt)
+		p.setSpecTy = types.NewSignatureType(nil, nil, nil, params, results, false)
+	}
+	return p.setSpecTy
+}
+
+func (b Builder) pthreadGetspecific(key Expr) Expr {
+	fn := b.Pkg.cFunc("pthread_getspecific", b.Prog.tyPthreadGetspecific())
+	return b.Call(fn, key)
+}
+
+func (b Builder) pthreadSetspecific(key, val Expr) Expr {
+	fn := b.Pkg.cFunc("pthread_setspecific", b.Prog.tyPthreadSetspecific())
+	return b.Call(fn, key, val)
+}
+
+// -----------------------------------------------------------------------------

@@ -1,0 +1,96 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ */
+
+// Package run implements the "llgo run" command.
+package run
+
+import (
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+
+	"github.com/goplus/llgo/compiler/cmd/internal/base"
+	"github.com/goplus/llgo/compiler/internal/build"
+	"github.com/goplus/llgo/compiler/internal/mockable"
+)
+
+var (
+	errNoProj = errors.New("llgo: no go files listed")
+)
+
+// llgo run
+var Cmd = &base.Command{
+	UsageLine: "llgo run [build flags] package [arguments...]",
+	Short:     "Compile and run Go program",
+}
+
+// llgo cmptest
+var CmpTestCmd = &base.Command{
+	UsageLine: "llgo cmptest [-gen] [build flags] package [arguments...]",
+	Short:     "Compile and run with llgo, compare result (stdout/stderr/exitcode) with go or llgo.expect; generate llgo.expect file if -gen is specified",
+}
+
+func init() {
+	Cmd.Run = runCmd
+	CmpTestCmd.Run = runCmpTest
+}
+
+func runCmd(cmd *base.Command, args []string) {
+	runCmdEx(cmd, args, build.ModeRun)
+}
+
+func runCmpTest(cmd *base.Command, args []string) {
+	runCmdEx(cmd, args, build.ModeCmpTest)
+}
+
+func runCmdEx(_ *base.Command, args []string, mode build.Mode) {
+	conf := build.NewDefaultConf(mode)
+	if mode == build.ModeCmpTest && len(args) > 0 && args[0] == "-gen" {
+		conf.GenExpect = true
+		args = args[1:]
+	}
+	args, runArgs, err := parseRunArgs(args)
+	check(err)
+	conf.RunArgs = runArgs
+	_, err = build.Do(args, conf)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		mockable.Exit(1)
+	}
+}
+
+func parseRunArgs(args []string) ([]string, []string, error) {
+	n := build.SkipFlagArgs(args)
+	if n < 0 {
+		return nil, nil, errNoProj
+	}
+
+	arg := args[n]
+	if isGoFile(arg) {
+		n++
+		for n < len(args) && isGoFile(args[n]) {
+			n++
+		}
+		return args[:n], args[n:], nil
+	}
+	return args[:n+1], args[n+1:], nil
+}
+
+func isGoFile(fname string) bool {
+	return filepath.Ext(fname) == ".go"
+}
+
+func check(err error) {
+	if err != nil {
+		panic(err)
+	}
+}

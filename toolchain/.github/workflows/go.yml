@@ -1,0 +1,59 @@
+# Test whether we can link to LLVM installed from apt.llvm.org or Homebrew.
+---
+
+name: Test
+
+on: [push, pull_request]
+
+jobs:
+  test-macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        llvm: [14, 15, 16, 17, 18]
+        go-version: [1.18.x, 1.21.x, 1.22.x]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+      #- name: Update Homebrew
+      #  if: matrix.llvm == 17 # needed as long as LLVM 17 is still fresh
+      #  run: brew update
+      - name: Install LLVM
+        run: HOMEBREW_NO_AUTO_UPDATE=1 brew install llvm@${{ matrix.llvm }}
+      - name: Test LLVM ${{ matrix.llvm }}
+        run:
+          go test -v -tags=llvm${{ matrix.llvm }}
+      - name: Test default LLVM
+        if: matrix.llvm == 18
+        run:
+          go test -v
+  test-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        llvm: [14, 15, 16, 17, 18]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: Install LLVM
+        run: |
+          echo 'deb http://apt.llvm.org/focal/ llvm-toolchain-focal-${{ matrix.llvm }} main' | sudo tee /etc/apt/sources.list.d/llvm.list
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends llvm-${{ matrix.llvm }}-dev
+      - name: Test LLVM ${{ matrix.llvm }}
+        run:
+          go test -v -tags=llvm${{ matrix.llvm }}
+      - name: Test default LLVM
+        if: matrix.llvm == 18
+        run:
+          go test -v
