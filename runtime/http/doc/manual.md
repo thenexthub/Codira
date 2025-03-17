@@ -1,14 +1,14 @@
 yap - Yet Another Go/Go+ HTTP Web Framework
 ======
 
-This repo contains three [Go+ classfiles](https://github.com/goplus/gop/blob/main/doc/classfile.md): `yap` (a HTTP Web Framework), `yaptest` (a HTTP Test Framework) and `ydb` (a Go+ Database Framework).
+This repo contains three [Go+ classfiles](https://language/gop/blob/main/doc/classfile.md): `yap` (a HTTP Web Framework), `yaptest` (a HTTP Test Framework) and `ydb` (a Go+ Database Framework).
 
 The classfile `yap` has the file suffix `.yap`. The classfile `yaptest` has the file suffix `_ytest.gox`. And the classfile `ydb` has the file suffix `_ydb.gox`.
 
-Before using `yap`, `yaptest` or `ydb`, you need to add `github.com/goplus/yap` to `go.mod`:
+Before using `yap`, `yaptest` or `ydb`, you need to add `language/yap` to `go.mod`:
 
 ```sh
-gop get github.com/goplus/yap@latest
+gop get language/yap@latest
 ```
 
 
@@ -17,7 +17,7 @@ gop get github.com/goplus/yap@latest
 demo in Go ([hello.go](../demo/hello/hello.go)):
 
 ```go
-import "github.com/goplus/yap"
+import "language/yap"
 
 func main() {
 	y := yap.New()
@@ -104,7 +104,7 @@ demo in Go ([blog.go](../demo/blog/blog.go), [article_yap.html](../demo/blog/yap
 import (
 	"os"
 
-	"github.com/goplus/yap"
+	"language/yap"
 )
 
 y := yap.New(os.DirFS("."))
@@ -179,6 +179,6 @@ json {
 }
 ```
 
-The directive `testServer` creates the web server by [net/http/httptest](https://pkg.go.dev/net/http/httptest#NewServer) and obtained a random port as the service address. Then it calls the directive [host](https://pkg.go.dev/github.com/goplus/yap/ytest#App.Host) to map the random service address to `foo.com`. This makes all other code no need to changed.
+The directive `testServer` creates the web server by [net/http/httptest](https://pkg.go.dev/net/http/httptest#NewServer) and obtained a random port as the service address. Then it calls the directive [host](https://pkg.go.dev/language/yap/ytest#App.Host) to map the random service address to `foo.com`. This makes all other code no need to changed.
 
 For more details, see [yaptest - Go+ HTTP Test Framework](../ytest).

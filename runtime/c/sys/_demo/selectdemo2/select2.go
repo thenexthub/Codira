@@ -3,10 +3,10 @@ package main
 import (
 	"unsafe"
 
-	"github.com/goplus/llgo/c"
-	"github.com/goplus/llgo/c/net"
-	"github.com/goplus/llgo/c/os"
-	"github.com/goplus/llgo/c/sys"
+	"language/llgo/c"
+	"language/llgo/c/net"
+	"language/llgo/c/os"
+	"language/llgo/c/sys"
 )
 
 const (

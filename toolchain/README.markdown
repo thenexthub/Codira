@@ -1,10 +1,10 @@
 # Go bindings to system LLVM
 
-[![Build Status](https://github.com/goplus/llvm/actions/workflows/go.yml/badge.svg)](https://github.com/goplus/llvm/actions/workflows/go.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/goplus/llvm)](https://goreportcard.com/report/github.com/goplus/llvm)
-[![GoDoc](https://pkg.go.dev/badge/github.com/goplus/llvm.svg)](https://pkg.go.dev/github.com/goplus/llvm)
+[![Build Status](https://language/llvm/actions/workflows/go.yml/badge.svg)](https://language/llvm/actions/workflows/go.yml)
+[![Go Report Card](https://goreportcard.com/badge/language/llvm)](https://goreportcard.com/report/language/llvm)
+[![GoDoc](https://pkg.go.dev/badge/language/llvm.svg)](https://pkg.go.dev/language/llvm)
 <!--
-[![GitHub release](https://img.shields.io/github/v/tag/goplus/llvm.svg?label=release)](https://github.com/goplus/llvm/releases)
+[![GitHub release](https://img.shields.io/github/v/tag/goplus/llvm.svg?label=release)](https://language/llvm/releases)
 [![Coverage Status](https://codecov.io/gh/goplus/llvm/branch/main/graph/badge.svg)](https://codecov.io/gh/goplus/llvm)
 -->
 
@@ -23,7 +23,7 @@ You can select the LLVM version using a build tag, for example `-tags=llvm14` to
 
 If you have a supported LLVM installation, you should be able to do a simple `go get`:
 
-    go get github.com/goplus/llvm
+    go get language/llvm
 
 You can use build tags to select a LLVM version. For example, use `-tags=llvm15` to select LLVM 15. Setting a build tag for a LLVM version that is not supported will be ignored.
 

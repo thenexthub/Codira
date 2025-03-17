@@ -326,10 +326,10 @@ Finally, provide example code and a detailed README file to help users understan
 
 ## Example Code
 
-You can find the migrated examples in the [llgoexamples](https://github.com/goplus/llgoexamples). The migrated Rust libraries are in the `lib` directory, and the migrated mapping files and Go demos are in the `rust` directory.
+You can find the migrated examples in the [llgoexamples](https://language/llgoexamples). The migrated Rust libraries are in the `lib` directory, and the migrated mapping files and Go demos are in the `rust` directory.
 
 Such as:
 
-- CSV: [csv.rs](https://github.com/goplus/llgoexamples/blob/main/lib/rust/csv-wrapper/src/lib.rs) --> [csv.go](https://github.com/goplus/llgoexamples/blob/main/rust/csv/csv.go)
-- Sled: [sled.rs](https://github.com/goplus/llgoexamples/blob/main/lib/rust/sled/src/lib.rs) --> [sled.go](https://github.com/goplus/llgoexamples/blob/main/rust/sled/sled.go)
+- CSV: [csv.rs](https://language/llgoexamples/blob/main/lib/rust/csv-wrapper/src/lib.rs) --> [csv.go](https://language/llgoexamples/blob/main/rust/csv/csv.go)
+- Sled: [sled.rs](https://language/llgoexamples/blob/main/lib/rust/sled/src/lib.rs) --> [sled.go](https://language/llgoexamples/blob/main/rust/sled/sled.go)
 - ...

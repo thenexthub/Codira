@@ -1,16 +1,16 @@
 yaptest - Go+ HTTP Test Framework
 =====
-[![Language](https://img.shields.io/badge/language-Go+-blue.svg)](https://github.com/goplus/gop)
-[![GitHub release](https://img.shields.io/github/v/tag/goplus/gop.svg?label=Go%2b+release)](https://github.com/goplus/gop/releases)
+[![Language](https://img.shields.io/badge/language-Go+-blue.svg)](https://language/gop)
+[![GitHub release](https://img.shields.io/github/v/tag/goplus/gop.svg?label=Go%2b+release)](https://language/gop/releases)
 [![Discord](https://img.shields.io/badge/Discord-online-success.svg?logo=discord&logoColor=white)](https://discord.gg/mYjWCJDcAr)
-[![GoDoc](https://pkg.go.dev/badge/github.com/goplus/yap/ytest.svg)](https://pkg.go.dev/github.com/goplus/yap/ytest)
+[![GoDoc](https://pkg.go.dev/badge/language/yap/ytest.svg)](https://pkg.go.dev/language/yap/ytest)
 
 yaptest is a web server testing framework. This classfile has the file suffix `_ytest.gox`.
 
-Before using `yaptest`, you need to add `github.com/goplus/yap` to `go.mod`:
+Before using `yaptest`, you need to add `language/yap` to `go.mod`:
 
 ```
-gop get github.com/goplus/yap@latest
+gop get language/yap@latest
 ```
 
 Suppose we have a web server ([foo/get_p_#id.yap](demo/foo/get_p_%23id.yap)):
@@ -49,7 +49,7 @@ json {
 }
 ```
 
-The directive `testServer` creates the web server by [net/http/httptest](https://pkg.go.dev/net/http/httptest#NewServer) and obtained a random port as the service address. Then it calls the directive [host](https://pkg.go.dev/github.com/goplus/yap/ytest#App.Host) to map the random service address to `foo.com`. This makes all other code no need to changed.
+The directive `testServer` creates the web server by [net/http/httptest](https://pkg.go.dev/net/http/httptest#NewServer) and obtained a random port as the service address. Then it calls the directive [host](https://pkg.go.dev/language/yap/ytest#App.Host) to map the random service address to `foo.com`. This makes all other code no need to changed.
 
 
 ## match

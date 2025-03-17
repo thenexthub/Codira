@@ -16,7 +16,7 @@ or
 
 ```shell
 /opt/homebrew/bin/lldb -O "command script import _lldb/llgo_plugin.py" ./cl/_testdata/debug/out
-# github.com/goplus/llgo/cl/_testdata/debug
+# language/llgo/cl/_testdata/debug
 Breakpoint 1: no locations (pending).
 Breakpoint set in dummy target, will get copied into future targets.
 (lldb) command script import _lldb/llgo_plugin.py
@@ -47,7 +47,7 @@ Process 21992 stopped
    228 		//   s.i8: '\x12'
 (lldb) v
 var i int = <variable not available>
-var s github.com/goplus/llgo/cl/_testdata/debug.StructWithAllTypeFields = {
+var s language/llgo/cl/_testdata/debug.StructWithAllTypeFields = {
   i8 = '\x12',
   i16 = 2,
   i32 = 3,
@@ -65,7 +65,7 @@ var s github.com/goplus/llgo/cl/_testdata/debug.StructWithAllTypeFields = {
   c128 = {real = 15, imag = 16},
   slice = []int{21, 22, 23},
   arr = [3]int{24, 25, 26},
-  arr2 = [3]github.com/goplus/llgo/cl/_testdata/debug.E{{i = 27}, {i = 28}, {i = 29}},
+  arr2 = [3]language/llgo/cl/_testdata/debug.E{{i = 27}, {i = 28}, {i = 29}},
   s = "hello",
   e = {i = 30},
   pf = 0x0000000100123d10,
@@ -78,8 +78,8 @@ var s github.com/goplus/llgo/cl/_testdata/debug.StructWithAllTypeFields = {
   pad1 = 100,
   pad2 = 200
 }
-var globalStructPtr *github.com/goplus/llgo/cl/_testdata/debug.StructWithAllTypeFields = <variable not available>
-var globalStruct github.com/goplus/llgo/cl/_testdata/debug.StructWithAllTypeFields = {
+var globalStructPtr *language/llgo/cl/_testdata/debug.StructWithAllTypeFields = <variable not available>
+var globalStruct language/llgo/cl/_testdata/debug.StructWithAllTypeFields = {
   i8 = '\x01',
   i16 = 2,
   i32 = 3,
@@ -97,7 +97,7 @@ var globalStruct github.com/goplus/llgo/cl/_testdata/debug.StructWithAllTypeFiel
   c128 = {real = 15, imag = 16},
   slice = []int{21, 22, 23},
   arr = [3]int{24, 25, 26},
-  arr2 = [3]github.com/goplus/llgo/cl/_testdata/debug.E{{i = 27}, {i = 28}, {i = 29}},
+  arr2 = [3]language/llgo/cl/_testdata/debug.E{{i = 27}, {i = 28}, {i = 29}},
   s = "hello",
   e = {i = 30},
   pf = 0x0000000100123d10,

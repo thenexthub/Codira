@@ -3,7 +3,7 @@ package libuv
 import (
 	_ "unsafe"
 
-	"github.com/goplus/llgo/c"
+	"language/llgo/c"
 )
 
 /* Handle types. */

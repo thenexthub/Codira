@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/goplus/llgo/c/zlib"
+	"language/llgo/c/zlib"
 )
 
 func main() {

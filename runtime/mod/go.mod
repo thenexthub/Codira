@@ -1,4 +1,4 @@
-module github.com/goplus/mod
+module language/mod
 
 go 1.18
 

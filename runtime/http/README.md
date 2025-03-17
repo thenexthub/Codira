@@ -1,21 +1,21 @@
 yap - Yet Another Go/Go+ HTTP Web Framework
 ======
 
-[![Build Status](https://github.com/goplus/yap/actions/workflows/go.yml/badge.svg)](https://github.com/goplus/yap/actions/workflows/go.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/goplus/yap)](https://goreportcard.com/report/github.com/goplus/yap)
-[![GitHub release](https://img.shields.io/github/v/tag/goplus/yap.svg?label=release)](https://github.com/goplus/yap/releases)
+[![Build Status](https://language/yap/actions/workflows/go.yml/badge.svg)](https://language/yap/actions/workflows/go.yml)
+[![Go Report Card](https://goreportcard.com/badge/language/yap)](https://goreportcard.com/report/language/yap)
+[![GitHub release](https://img.shields.io/github/v/tag/goplus/yap.svg?label=release)](https://language/yap/releases)
 [![Coverage Status](https://codecov.io/gh/goplus/yap/branch/main/graph/badge.svg)](https://codecov.io/gh/goplus/yap)
-[![GoDoc](https://pkg.go.dev/badge/github.com/goplus/yap.svg)](https://pkg.go.dev/github.com/goplus/yap)
-[![Language](https://img.shields.io/badge/language-Go+-blue.svg)](https://github.com/goplus/gop)
+[![GoDoc](https://pkg.go.dev/badge/language/yap.svg)](https://pkg.go.dev/language/yap)
+[![Language](https://img.shields.io/badge/language-Go+-blue.svg)](https://language/gop)
 
-This repo contains three [Go+ classfiles](https://github.com/goplus/gop/blob/main/doc/classfile.md). They are [yap](#yap-http-web-framework) (a HTTP Web Framework), [yaptest](ytest) (a HTTP Test Framework) and [ydb](ydb) (a Go+ Database Framework).
+This repo contains three [Go+ classfiles](https://language/gop/blob/main/doc/classfile.md). They are [yap](#yap-http-web-framework) (a HTTP Web Framework), [yaptest](ytest) (a HTTP Test Framework) and [ydb](ydb) (a Go+ Database Framework).
 
 The classfile [yap](#yap-http-web-framework) has the file suffix `.yap`. The classfile [yaptest](ytest) has the file suffix `_ytest.gox`. And the classfile [ydb](ydb) has the file suffix `_ydb.gox`.
 
-Before using `yap`, `yaptest` or `ydb`, you need to add `github.com/goplus/yap` to `go.mod`:
+Before using `yap`, `yaptest` or `ydb`, you need to add `language/yap` to `go.mod`:
 
 ```sh
-gop get github.com/goplus/yap@latest
+gop get language/yap@latest
 ```
 
 For more details, see [YAP Framework Manual](doc/manual.md).
@@ -32,7 +32,7 @@ gop mod init hello
 Then we have it reference a classfile called `yap` as the HTTP Web Framework:
 
 ```sh
-gop get github.com/goplus/yap@latest
+gop get language/yap@latest
 ```
 
 Create a file named [get.yap](demo/classfile2_hello/get.yap) with the following content:
@@ -159,7 +159,7 @@ json {
 }
 ```
 
-The directive `testServer` creates the web server by [net/http/httptest](https://pkg.go.dev/net/http/httptest#NewServer) and obtained a random port as the service address. Then it calls the directive [host](https://pkg.go.dev/github.com/goplus/yap/ytest#App.Host) to map the random service address to `foo.com`. This makes all other code no need to changed.
+The directive `testServer` creates the web server by [net/http/httptest](https://pkg.go.dev/net/http/httptest#NewServer) and obtained a random port as the service address. Then it calls the directive [host](https://pkg.go.dev/language/yap/ytest#App.Host) to map the random service address to `foo.com`. This makes all other code no need to changed.
 
 For more details, see [yaptest - Go+ HTTP Test Framework](ytest).
 

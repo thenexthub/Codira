@@ -54,7 +54,7 @@ $ brew install goplus
 ### from source code
 
 ```bash
-git clone https://github.com/goplus/gop.git
+git clone https://language/gop.git
 cd gop
 
 # On mac/linux run:
@@ -776,7 +776,7 @@ Compared to corresponding Go code, It is clear and more readable.
 
 And the most interesting thing is, the return error contains the full error stack. When we got an error, it is very easy to position what the root cause is.
 
-How these `ErrWrap expressions` work? See [Error Handling](https://github.com/goplus/gop/wiki/Error-Handling) for more information.
+How these `ErrWrap expressions` work? See [Error Handling](https://language/gop/wiki/Error-Handling) for more information.
 
 <h5 align="right"><a href="#table-of-contents">⬆ back to toc</a></h5>
 
@@ -1111,7 +1111,7 @@ By default `gop watch` does not convert test files (normally ending with `_test.
 
 ## Calling C from Go+
 
-Here is [an example to show how Go+ interacts with C](https://github.com/goplus/gop/tree/main/demo/_llgo/hellollgo).
+Here is [an example to show how Go+ interacts with C](https://language/gop/tree/main/demo/_llgo/hellollgo).
 
 ```go
 import "c"
@@ -1275,7 +1275,7 @@ fmt.Println "x:", x
 
 First, let's make a directory named `14-Using-goplus-in-Go`.
 
-Then write a Go+ package named [foo](https://github.com/goplus/tutorial/tree/main/14-Using-goplus-in-Go/foo) in it:
+Then write a Go+ package named [foo](https://language/tutorial/tree/main/14-Using-goplus-in-Go/foo) in it:
 
 ```go
 package foo
@@ -1285,7 +1285,7 @@ func ReverseMap(m map[string]int) map[int]string {
 }
 ```
 
-Then use it in a Go package [14-Using-goplus-in-Go/gomain](https://github.com/goplus/tutorial/tree/main/14-Using-goplus-in-Go/gomain):
+Then use it in a Go package [14-Using-goplus-in-Go/gomain](https://language/tutorial/tree/main/14-Using-goplus-in-Go/gomain):
 
 ```go
 package main
@@ -1293,7 +1293,7 @@ package main
 import (
     "fmt"
 
-    "github.com/goplus/tutorial/14-Using-goplus-in-Go/foo"
+    "language/tutorial/14-Using-goplus-in-Go/foo"
 )
 
 func main() {
@@ -1308,7 +1308,7 @@ How to build this example? You can use:
 gop install -v ./...
 ```
 
-Go [github.com/goplus/tutorial/14-Using-goplus-in-Go](https://github.com/goplus/tutorial/tree/main/14-Using-goplus-in-Go) to get the source code.
+Go [language/tutorial/14-Using-goplus-in-Go](https://language/tutorial/tree/main/14-Using-goplus-in-Go) to get the source code.
 
 <h5 align="right"><a href="#table-of-contents">⬆ back to toc</a></h5>
 
@@ -1329,7 +1329,7 @@ gop clean   # Clean all Go+ auto generated files
 gop go      # Convert Go+ packages into Go packages
 ```
 
-When we use [`igop`](https://github.com/goplus/igop) command, it generates bytecode to execute.
+When we use [`igop`](https://language/igop) command, it generates bytecode to execute.
 
 ```bash
 igop  # Run a Go+ program

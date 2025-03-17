@@ -1,4 +1,4 @@
-module github.com/goplus/hdq
+module language/hdq
 
 go 1.18
 

@@ -1,4 +1,4 @@
-module github.com/goplus/yap
+module language/yap
 
 go 1.18
 

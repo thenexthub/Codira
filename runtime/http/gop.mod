@@ -1,25 +1,25 @@
 gop 1.2
 
-project .yap AppV2 github.com/goplus/yap
+project .yap AppV2 language/yap
 
 class .yap Handler
 
-project _yap.gox App github.com/goplus/yap
+project _yap.gox App language/yap
 
-project _yapt.gox App github.com/goplus/yap/ytest github.com/goplus/yap/test
+project _yapt.gox App language/yap/ytest language/yap/test
 
 class _yapt.gox Case
 
-import github.com/goplus/yap/ytest/auth/jwt
+import language/yap/ytest/auth/jwt
 
-project _ytest.gox App github.com/goplus/yap/ytest github.com/goplus/yap/test
+project _ytest.gox App language/yap/ytest language/yap/test
 
 class _ytest.gox CaseApp
 
-import github.com/goplus/yap/ytest/auth/jwt
+import language/yap/ytest/auth/jwt
 
-project _ydb.gox AppGen github.com/goplus/yap/ydb github.com/goplus/yap/test
+project _ydb.gox AppGen language/yap/ydb language/yap/test
 
 class _ydb.gox Class
 
-import github.com/goplus/yap/ydb/mysql
+import language/yap/ydb/mysql

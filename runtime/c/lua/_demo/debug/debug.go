@@ -3,8 +3,8 @@ package main
 import (
 	"unsafe"
 
-	"github.com/goplus/llgo/c"
-	"github.com/goplus/llgo/c/lua"
+	"language/llgo/c"
+	"language/llgo/c/lua"
 )
 
 func Hook(L *lua.State, ar *lua.Debug) {

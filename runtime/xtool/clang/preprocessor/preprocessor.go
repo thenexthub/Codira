@@ -17,7 +17,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/goplus/llgo/xtool/clang/pathutil"
+	"language/llgo/xtool/clang/pathutil"
 )
 
 const (

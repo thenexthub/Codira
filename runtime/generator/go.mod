@@ -1,4 +1,4 @@
-module github.com/goplus/gogen
+module language/gogen
 
 go 1.19
 

@@ -17,8 +17,8 @@ package std
 import (
 	"unsafe"
 
-	"github.com/goplus/llgo/c"
-	"github.com/goplus/llgo/c/bdwgc"
+	"language/llgo/c"
+	"language/llgo/c/bdwgc"
 )
 
 // -----------------------------------------------------------------------------

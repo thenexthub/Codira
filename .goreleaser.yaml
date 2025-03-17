@@ -11,8 +11,8 @@ builds:
     main: ./cmd/gop
     binary: bin/gop
     ldflags:
-      - -X github.com/goplus/gop/env.buildVersion=v{{.Version}}
-      - -X github.com/goplus/gop/env.buildDate={{.Date}}
+      - -X language/gop/env.buildVersion=v{{.Version}}
+      - -X language/gop/env.buildDate={{.Date}}
     env:
       - CGO_ENABLED=0
     goos:
@@ -104,8 +104,8 @@ winget:
   - name: goplus
     homepage: "https://goplus.org/"
     publisher: goplus
-    publisher_url: https://github.com/goplus/gop
-    publisher_support_url: "https://github.com/goplus/gop/issues/new"
+    publisher_url: https://language/gop
+    publisher_support_url: "https://language/gop/issues/new"
     package_identifier: goplus.gop
     path: "manifests/g/goplus/gop/{{.Version}}"
     tags:

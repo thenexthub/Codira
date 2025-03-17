@@ -1,4 +1,4 @@
-module github.com/goplus/llgo/runtime
+module language/llgo/runtime
 
 go 1.20
 

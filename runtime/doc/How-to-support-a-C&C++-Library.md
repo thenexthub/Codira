@@ -67,7 +67,7 @@ const (
 
 5. Write the corresponding function in `inih.go`
 
-Note that the basic C function type mapping to Go function type can be found at [https://github.com/goplus/llgo/blob/main/doc/Type-Mapping-between-C-and-Go.md](https://github.com/goplus/llgo/blob/main/doc/Type-Mapping-between-C-and-Go.md). Some types requiring special handling are listed at the end of this document for reference.
+Note that the basic C function type mapping to Go function type can be found at [https://language/llgo/blob/main/doc/Type-Mapping-between-C-and-Go.md](https://language/llgo/blob/main/doc/Type-Mapping-between-C-and-Go.md). Some types requiring special handling are listed at the end of this document for reference.
 
 ```go
 //go:linkname Parse C.ini_parse
@@ -80,8 +80,8 @@ func Parse(filename *c.Char, handler func(user c.Pointer, section *c.Char, name 
 package main
 
 import (
-"github.com/goplus/llgo/c"
-"github.com/goplus/llgo/cpp/inih"
+"language/llgo/c"
+"language/llgo/cpp/inih"
 )
 
 func main() {
@@ -223,8 +223,8 @@ package main
 import (
 	"unsafe"
 
-	"github.com/goplus/llgo/c"
-	"github.com/goplus/llgo/c/ptrtest"
+	"language/llgo/c"
+	"language/llgo/c/ptrtest"
 )
 
 func main() {
@@ -409,9 +409,9 @@ LLGoPackage = "link: $(pkg-config --libs spdlog); -lspdlog -pthread -lfmt")
 package main
 
 import (
-	"github.com/goplus/llgo/c"
-	"github.com/goplus/llgo/cpp/inih"
-	"github.com/goplus/llgo/cpp/std"
+	"language/llgo/c"
+	"language/llgo/cpp/inih"
+	"language/llgo/cpp/std"
 )
 
 func demoFromBuffer() {
