@@ -1,4 +1,0 @@
-example_variable = "some string"
-example_object = {
-	sub_variable = 1234.56
-}
