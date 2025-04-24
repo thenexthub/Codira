@@ -1,9 +1,0 @@
-a := [1, 2]
-plot x => x * x
-onStart x => {
-	println x
-}
-for i <- :10 {
-}
-println [x*x for x <- :10]
-print f()?:10

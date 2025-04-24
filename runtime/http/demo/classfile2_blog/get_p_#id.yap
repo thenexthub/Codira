@@ -1,3 +1,0 @@
-yap "article", {
-	"id": ${id},
-}

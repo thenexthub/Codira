@@ -1,3 +1,0 @@
-func neg(x string) (int, error) {
-	return -atoi(x)?, nil
-}

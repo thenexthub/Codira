@@ -1,0 +1,5 @@
+*~
+.*.sw?
+[b|B]uild
+Debug
+Release

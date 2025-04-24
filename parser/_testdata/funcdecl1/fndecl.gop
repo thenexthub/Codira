@@ -1,3 +1,0 @@
-func() (int, int) {
-	return 1, 1
-}()

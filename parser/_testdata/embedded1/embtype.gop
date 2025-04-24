@@ -1,3 +1,0 @@
-type T struct {
-	abc.E
-}

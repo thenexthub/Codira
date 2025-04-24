@@ -1,0 +1,25 @@
+name: Continuous Integration
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  continuous-integration:
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Test
+        run: swift test --enable-test-discovery
+        if: runner.os != 'Windows'
+        env:
+          PYTHON_VERSION: 3
+          PYTHON_LOADER_LOGGING: TRUE

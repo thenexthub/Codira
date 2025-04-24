@@ -1,4 +1,0 @@
-map strs, toUpper
-map ["hello", "world"], toUpper
-map[string]int{"Hi": 1}
-println map(strs, strings.ToUpper)

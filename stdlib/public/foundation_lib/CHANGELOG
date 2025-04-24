@@ -1,0 +1,234 @@
+1.6.3
+
+Add hashmap_foreach utility function to call a function for each value in a hashmap
+
+1.6.2
+
+Make radixsort have a dynamic index type based on max size during initialization. Returned
+data type from radixsort_sort should be cast to the correct type (uint16_t or uint32_t) based
+on sort context indextype (RADIXSORT_INDEX16 or RADIXSORT_INDEX32 respectively)
+
+Use clang format for automatic source formatting (many whitespace changes), and rename
+"num" variables and arguments to "count" for counting items/things, and "size" for byte
+size of things.
+
+Add a bucketized array for lower cost growing for large arrays
+
+Add function to query if a thread has finished execution (thread_is_finished)
+
+Added macro for more readable uuid constant declarations (uuid_decl)
+
+Buffer stream path now includes address for end of buffer
+
+Added a compressed flag to stream flag bitfield
+
+Updated ninja build script to support Visual Studio 2022
+
+
+1.6.1
+
+Add uuidmap for mapping UUIDs to pointer values
+
+Added fs_matching_subdirs and fs_matching_subdirs_regex for finding matching subdirectories
+
+Change object map to use external ID and ref count representation for object, allowing
+pointers to any type to be stored in map. Rename the objectmap_lookup_ref and objectmap_lookup_unref
+to better named objectmap_acquire and objectmap_release
+
+Rename library_unload to library_release to match object map function naming
+
+Bugfix on macOS/iOS where main thread did not properly initialize memory subsystem if
+other than the default system was used
+
+Add thread_is_entered to query if thread_enter has been called on the calling thread
+
+Bugfix in macOS file system watcher, correctly bootstrapping thread memory handling for cleanup
+if needed
+
+Fix path_base_file_name to return name up to last dot in filename, not first dot. A file
+"path/to/foo.bar.ext" will thus return "foo.bar" instead of "foo"
+
+
+1.6.0
+
+Use pthread_exit to terminate threads on POSIX for compatibility with libs overriding
+pthread_exit or using pthread_cleanup_push.
+
+Add thread_enter and memory_thread_initialize to provide optional entry points for
+memory system per-thread initialization.
+
+Add hint flags to memory reallocation to optionally avoid copying to preserve old content.
+
+Make memory reallocation respect 32bit flag and fall back to alloc and copy.
+
+Fix parsing of negative numbers in JSON/SJSON parser.
+
+Unify macOS/iOS delegate_nswindow and delegate_uiwindow functions to delegate_window.
+
+Support using SetThreadDescription (if present) to set thread name on Windows.
+
+Change MacOSX platform names and identifiers to macOS (FOUNDATION_PLATFORM_MACOS).
+
+Fix race condition in ring buffer streams read/write.
+
+Use C11 atomics for all compilers (except Microsoft) instead of builtin or own implementations.
+Add memory ordering to all atomic entry points.
+
+semaphore_initialize and semaphore_initialize_named now return boolean success/fail indicator
+
+Change object map to use semaphore for write operation instead of atomics. Also change
+object map index to 32 bit, and object_t type to 32 bit.
+
+Add a mock system to tests to simulate failing system calls.
+
+Remove flag to memory allocation to allocate in low 32-bit address range on 64-bit systems.
+
+
+1.5.3
+
+Added thread finalizer to memory system to clean up resources on thread exit.
+
+Use built in thread local storage introduced in XCode 8 on Apple platforms.
+
+Fixed race condition in default memory tracker implementation of deallocation tracking.
+
+Fixed error_context_buffer to always return string without trailing whitespace.
+
+Change macOS implementation of unnamed semaphore to use GCD dispatch_semaphore instead
+of deprecated MPCreateSemaphore
+
+Bumped iOS default target to 9.0 and changed system_message_box to use UIAlertController
+
+Bump Visual Studio projects to 2017
+
+Moved Android jar signing in ninja builds to separate codesign script to unify with
+iOS/macOS and to allow secrets to be stored in separate private codesign JSON
+
+
+1.5.2
+
+Unified adding remote sources as input to a beacon. The add/remove functions of a beacon
+are now named beacon_add_<type> and beacon_remove_<type>. All platforms can add/remove
+a remote beacon source. Windows and Posix targets can add/remove file descriptors. Windows
+can also add/remove a OS handle.
+
+Changed pipe to always provide a file descriptor, and renamed function to
+pipe_read_fd/pipe_write_fd to match new beacon function naming. Windows platform still
+has pipe_read_handle/pipe_write_handle to access the OS handles.
+
+Fix an uninitialized variable in event streams causing beacon to not be fired before first
+process to event_steam_process on the event stream.
+
+Change path_clean to always uppercase Windows drive letters.
+
+Add stderr to process standard streams interface.
+
+Fix time_system on Apple platforms to return time since Epoch like other platforms.
+
+
+1.5.1
+
+Added string utility functions for converting from/to 256 and 512 bit unsigned int.
+Fixed function for converting string to 128-bit unsigned int to correctly parse
+strings shorter than 32 characters.
+
+Added stream utility functions for reading/writing 256 and 512 bit unsigned int.
+
+Added stream utility functions for calculating 256 and 512 bit SHA-2 digests (line ending
+agnostic as stream_md5 function).
+
+Clarified byte order of 256/512 bit integer representation, and fixed documentation.
+
+Changed json_handler_fn to take source path arguments to let handler deal with
+relative paths in json data.
+
+Rename fs_post_event to fs_event_post for naming consistency, added fs_event_path
+function to get file path from a file event.
+
+Added event handler to test suite declaration.
+
+Changed string_to_uuid to only convert fully convertible strings (no partial conversion)
+
+Added stream_copy to copy content of one stream to another.
+
+Added stream_read_uuid and stream_write_uuid to read/write UUID values from/to stream
+
+Added stream_write_separator and stream_skip_whitespace to conditionally write a
+separator and skip whitespace based on text/binary mode.
+
+
+1.5.0
+
+Added a minimal in-place JSON parser. Also parses simplified JSON.
+
+Added implementation SHA-2 256 and 512 bit algorithms, including uint256_t and uint512_t
+representation data types with string conversions.
+
+Removed configuration repository since it is mostly replaced by JSON parser.
+
+Changed byte order representation of raw digest from md5_get_digest_raw to generate
+correct string representation using string_from_uint128.
+
+Changed environment_home_directory to environment_application_directory and modify
+implementations to generate a application-specific path for persistent storage. Removed
+application config_dir declaration.
+
+Changed crash_* functions to more aptly named exception_* and added support for
+non-Microsoft compilers on Windows.
+
+Changed name of error callback and log callback to "handler" to unify naming with
+exception handling.
+
+Support for building as a shared object (dynamic library).
+
+Support for Intel, clang and gcc compilers on Windows.
+
+Android build now requires NDK r11 and uses clang by default, with built in
+thread local storage support instead of old pthread api wrappers.
+
+Refactored the ninja build generator into modules to be easier to extend and maintain
+instead of a single monolithic file. Minor changes in generator interface. Build only
+x86-64 target on Windows by default (x86 still supported).
+
+
+1.4.1
+
+Thread API change. Threads are now explicit structures instead of reference counted
+resources. Thread notification changed to a signal beacon. Finalizing a thread will
+join the thread and free resources.
+
+Added beacon, a compound synchronization primitive unifying WaitForMultipleObjects
+and epoll in a platform abstraction interface. Extended event streams to be able to
+fire a beacon on event post.
+
+path_directory_name now preserves protocols, path_subdirectory_name changed into
+path_subpath which matches protocols and returns subpaths instead of subdirectories.
+
+
+1.4.0
+
+Major API changes, 1.4.x is not in any way compatible with previous releases.
+
+All string APIs and functions taking string arguments have been extended to take and supply
+an explicit length argument/result, in order to avoid extra strlen calls to determine an
+already known length. All length arguments are explicit, zero no longer implicitly mean
+length of zero-terminated string passed in pointer. Pointer is assumed to be valid if length
+is non-zero, no additional null pointer checks are done.
+
+Path and string functions no longer automagically reallocate passed arguments. Functions
+now exist in two flavours, one acting on a passed buffer (best effort) and one allocating
+a new buffer.
+
+Size of buffers and objects are now denoted by size_t type arguments, not unsigned int.
+
+Functions returning arrays as result now generally take a preallocated array of given size
+as argument to avoid extra memory allocations.
+
+Build time size limit configuration in build.h have been moved to a run time configuration
+block passed to foundation_initialize.
+
+All shutdown functions have been renamed to finalize to better match the initialize function
+naming scheme.
+
+system_* functions returning strings now take a buffer argument for thread safety. Returned
+string will be in supplied buffer.

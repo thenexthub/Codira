@@ -1,1 +1,0 @@
-println "file:${args[0]}?${query}"

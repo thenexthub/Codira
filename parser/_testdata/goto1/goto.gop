@@ -1,3 +1,0 @@
-goto "a"
-goto 1, 2
-goto (1+2)*3

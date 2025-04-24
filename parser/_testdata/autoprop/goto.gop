@@ -1,3 +1,0 @@
-L:
-	goto(1, 2) + break(3, 4) + a.goto(6)
-	goto L

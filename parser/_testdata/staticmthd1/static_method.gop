@@ -1,2 +1,0 @@
-func T.foo(a, b int) string {
-}

@@ -1,4 +1,0 @@
-println "${"
-println "${ b }"
-println "a${"
-println "a${b}c"
