@@ -1,0 +1,53 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+#if !os(Linux)
+
+import ArgumentParser
+import SwiftRemoteMirror
+
+internal struct DumpArrays: ParsableCommand {
+  static let configuration = CommandConfiguration(
+    abstract: "Print information about array objects in the target.")
+
+  @OptionGroup()
+  var options: UniversalOptions
+
+  func run() throws {
+    try inspect(options: options) { process in
+      print("Address", "Size", "Count", "Is Class", separator: "\t")
+      process.iterateHeap { (allocation, size) in
+        let metadata: UInt =
+            swift_reflection_metadataForObject(process.context, UInt(allocation))
+        if metadata == 0 { return }
+
+        guard process.context.isContiguousArray(swift_reflection_ptr_t(metadata)) else {
+          return
+        }
+
+        let ReadBytes: RemoteProcess.ReadBytesFunction =
+            type(of: process).ReadBytes
+        let this = process.toOpaqueRef()
+
+        let isClass = process.context.isArrayOfClass(swift_reflection_ptr_t(metadata))
+        let count = process.context.arrayCount(swift_reflection_ptr_t(allocation),
+                                               { ReadBytes(this, $0, UInt64($1), nil) })
+        print("\(hex: swift_reflection_ptr_t(allocation))\t\(size)\t\(count.map(String.init) ?? "<unknown>")\t\(isClass)")
+      }
+    }
+  }
+}
+
+#endif

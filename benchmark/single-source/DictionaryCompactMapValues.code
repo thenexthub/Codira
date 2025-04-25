@@ -1,0 +1,50 @@
+//===--- DictionaryCompactMapValues.swift ---------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import TestsUtils
+
+let size = 100
+let oddNumbers = stride(from: 1, to: size, by: 2)
+let smallOddNumMap: [Int: Int?] =
+  Dictionary(uniqueKeysWithValues: zip(oddNumbers, oddNumbers))
+let compactOddNums: [Int: Int] =
+  Dictionary(uniqueKeysWithValues: zip(oddNumbers, oddNumbers))
+let oddStringMap: [Int: String] = Dictionary(uniqueKeysWithValues:
+  (1...size).lazy.map { ($0, $0 % 2 == 0 ? "dummy" : "\($0)") })
+
+let t: [BenchmarkCategory] = [.validation, .api, .Dictionary]
+
+public let benchmarks = [
+  BenchmarkInfo(name: "DictionaryCompactMapValuesOfNilValue",
+    runFunction: compactMapValues, tags: t,
+    setUpFunction: { blackHole(smallOddNumMap); blackHole(compactOddNums)},
+    legacyFactor: 50),
+  BenchmarkInfo(name: "DictionaryCompactMapValuesOfCastValue",
+    runFunction: compactMapValuesInt, tags: t,
+    setUpFunction: { blackHole(oddStringMap); blackHole(compactOddNums)},
+    legacyFactor: 54),
+]
+
+func compactMapValues(n: Int) {
+  for _ in 1...20*n {
+    check(smallOddNumMap.compactMapValues({$0}) == compactOddNums)
+  }
+}
+
+func compactMapValuesInt(n: Int) {
+  for _ in 1...20*n {
+    check(oddStringMap.compactMapValues(Int.init) == compactOddNums)
+  }
+}

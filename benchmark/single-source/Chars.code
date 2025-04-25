@@ -1,0 +1,52 @@
+//===--- Chars.swift ------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+// This test tests the performance of ASCII Character comparison.
+import TestsUtils
+
+public let benchmarks =
+  BenchmarkInfo(
+    name: "Chars2",
+    runFunction: run_Chars,
+    tags: [.validation, .api, .String],
+    setUpFunction: { blackHole(alphabetInput) },
+    legacyFactor: 50)
+
+let alphabetInput: [Character] = [
+    "A", "B", "C", "D", "E", "F", "G",
+    "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R",
+    "S", "T", "U",
+    "V", "W", "X", "Y", "Z", "/", "f", "Z", "z", "6", "7", "C", "j", "f", "9",
+    "g", "g", "I", "J", "K", "c", "x", "i", ".",
+    "2", "a", "t", "i", "o", "e", "q", "n", "X", "Y", "Z", "?", "m", "Z", ","
+    ]
+
+@inline(never)
+public func run_Chars(_ n: Int) {
+  // Permute some characters.
+  let alphabet: [Character] = alphabetInput
+
+  for _ in 0..<n {
+    for firstChar in alphabet {
+      for lastChar in alphabet {
+        blackHole(firstChar < lastChar)
+        blackHole(firstChar == lastChar)
+        blackHole(firstChar > lastChar)
+        blackHole(firstChar <= lastChar)
+        blackHole(firstChar >= lastChar)
+      }
+    }
+  }
+}

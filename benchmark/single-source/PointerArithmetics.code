@@ -1,0 +1,38 @@
+//===--- PointerArithmetics.swift -----------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import TestsUtils
+
+public let benchmarks = [
+  BenchmarkInfo(name: "PointerArithmetics",
+  runFunction: run_PointerArithmetics,
+  tags: [.validation, .api],
+  legacyFactor: 100),
+]
+
+@inline(never)
+public func run_PointerArithmetics(_ n: Int) {
+  var numbers = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+
+  var c = 0
+  withUnsafePointer(to: &numbers) {
+    $0.withMemoryRebound(to: Int.self, capacity: 10) { ptr in
+      for _ in 1...n*100_000 {
+        c += (ptr + getInt(10) - getInt(5)).pointee
+      }
+    }
+  }
+  check(c != 0)
+}

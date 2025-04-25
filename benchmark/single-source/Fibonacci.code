@@ -1,0 +1,51 @@
+//===--- Fibonacci.swift --------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import TestsUtils
+
+public let benchmarks =
+  BenchmarkInfo(
+    name: "Fibonacci2",
+    runFunction: run_Fibonacci,
+    tags: [.algorithm])
+
+func _fibonacci(_ n: Int) -> Int {
+  if (n <= 2) { return 1 }
+  return _fibonacci(n - 2) + _fibonacci(n - 1)
+}
+
+@inline(never)
+func fibonacci(_ n: Int) -> Int {
+  // This if prevents optimizer from computing return value of fibonacci(32)
+  // at compile time.
+  if getFalse() { return 0 }
+
+  if (n <= 2) { return 1 }
+  return _fibonacci(n - 2) + _fibonacci(n - 1)
+}
+
+@inline(never)
+public func run_Fibonacci(_ N: Int) {
+  let n = 24
+  let ref_result = 46368
+  var result = 0
+  for _ in 1...N {
+    result = fibonacci(n)
+    if result != ref_result {
+      break
+    }
+  }
+  check(result == ref_result)
+}

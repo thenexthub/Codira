@@ -1,0 +1,93 @@
+//===--- OpaqueConsumingUsers.swift ---------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import TestsUtils
+
+public let benchmarks =
+  BenchmarkInfo(
+    name: "OpaqueConsumingUsers",
+    runFunction: run_OpaqueConsumingUsers,
+    tags: [.regression, .abstraction, .refcount],
+    setUpFunction: setup_OpaqueConsumingUsers,
+    legacyFactor: 20)
+
+// This test exercises the ability of the optimizer to propagate the +1 from a
+// consuming argument of a non-inlineable through multiple non-inlinable call
+// frames.
+//
+// We are trying to simulate a user application that calls into a resilient
+// setter or initialization. We want to be able to propagate the +1 from the
+// setter through the app as far as we can.
+
+class Klass {}
+
+class ConsumingUser {
+  var _innerValue: Klass = Klass()
+
+  var value: Klass {
+    @inline(never) get {
+      return _innerValue
+    }
+    @inline(never) set {
+      _innerValue = newValue
+    }
+  }
+}
+
+var data: Klass? = nil
+var user: ConsumingUser? = nil
+
+func setup_OpaqueConsumingUsers() {
+  switch (data, user) {
+  case (let x?, let y?):
+    let _ = x
+    let _ = y
+    return
+  case (nil, nil):
+    data = Klass()
+    user = ConsumingUser()
+  default:
+    fatalError("Data and user should both be .none or .some")
+  }
+}
+
+@inline(never)
+func callFrame1(_ data: Klass, _ user: ConsumingUser) {
+  callFrame2(data, user)
+}
+
+@inline(never)
+func callFrame2(_ data: Klass, _ user: ConsumingUser) {
+  callFrame3(data, user)
+}
+
+@inline(never)
+func callFrame3(_ data: Klass, _ user: ConsumingUser) {
+  callFrame4(data, user)
+}
+
+@inline(never)
+func callFrame4(_ data: Klass, _ user: ConsumingUser) {
+  user.value = data
+}
+
+@inline(never)
+public func run_OpaqueConsumingUsers(_ n: Int) {
+  let d = data.unsafelyUnwrapped
+  let u = user.unsafelyUnwrapped
+  for _ in 0..<n*10_000 {
+    callFrame4(d, u)
+  }
+}

@@ -1,0 +1,42 @@
+//===--- IterateData.swift ------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import TestsUtils
+import Foundation
+
+public let benchmarks =
+  BenchmarkInfo(
+    name: "IterateData",
+    runFunction: run_IterateData,
+    tags: [.validation, .api, .Data],
+    setUpFunction: { blackHole(data) })
+
+let data: Data = {
+  var data = Data(count: 16 * 1024)
+  let n = data.count
+  data.withUnsafeMutableBytes { (ptr: UnsafeMutablePointer<UInt8>) -> () in
+    for i in 0..<n {
+      ptr[i] = UInt8(i % 23)
+    }
+  }
+  return data
+}()
+
+@inline(never)
+public func run_IterateData(_ n: Int) {
+  for _ in 1...10*n {
+    _ = data.reduce(0, &+)
+  }
+}

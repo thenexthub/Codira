@@ -2558,7 +2558,7 @@ function Install-Platform([Hashtable[]] $Platforms, [OS] $OS) {
   foreach ($Platform in $Platforms) {
     $PlatformResources = "$(Get-SwiftSDK $Platform.OS)\usr\lib\swift\$($Platform.OS.ToString().ToLowerInvariant())"
     Get-ChildItem -Recurse "$PlatformResources\$($Platform.Architecture.LLVMName)" | ForEach-Object {
-      if (".swiftmodule", ".swiftdoc", ".swiftinterface" -contains $_.Extension) {
+      if (".codemodule", ".codedoc", ".codeinterface" -contains $_.Extension) {
         Write-Host -BackgroundColor DarkRed -ForegroundColor White "$($_.FullName) is not in a thick module layout"
         Copy-File $_.FullName "$PlatformResources\$($_.BaseName).swiftmodule\$(Get-ModuleTriple $Platform)$($_.Extension)"
       }

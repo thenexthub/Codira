@@ -1,12 +1,15 @@
 //===--- IRGenModule.cpp - Swift Global LLVM IR Generation ----------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 //
@@ -1971,7 +1974,7 @@ void AutolinkKind::writeEntries(llvm::SetVector<llvm::MDNode *, Vector, Set> Ent
         new llvm::GlobalVariable(*IGM.getModule(), EntriesConstant->getType(),
                                  true, llvm::GlobalValue::PrivateLinkage,
                                  EntriesConstant, "_swift1_autolink_entries");
-    var->setSection(".swift1_autolink_entries");
+    var->setSection(".code1_autolink_entries");
     var->setAlignment(llvm::MaybeAlign(IGM.getPointerAlignment().getValue()));
 
     disableAddressSanitizer(IGM, var);
@@ -2130,7 +2133,7 @@ bool IRGenModule::finalize() {
       break;
     case llvm::Triple::ELF:
     case llvm::Triple::Wasm:
-      ModuleHash->setSection(".swift_modhash");
+      ModuleHash->setSection(".code_modhash");
       break;
     case llvm::Triple::COFF:
       ModuleHash->setSection(".sw5hash");

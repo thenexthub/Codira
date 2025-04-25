@@ -1,0 +1,79 @@
+//===------ ExtensionChangeWithinModuleTests.swift - Swift Testing --------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import XCTest
+import TSCBasic
+import IncrementalTestFramework
+
+@_spi(Testing) import SwiftDriver
+import SwiftOptions
+
+/// Try adding a more specific function in an extension in the same module
+class SpecificFuncAdditionInExtensionWithinModuleTest: XCTestCase {
+  func testSpecificFuncAdditionInExtensionWithinModule() throws {
+
+    // MARK: - Define the module
+    let main = Source(named: "main", containing: """
+      // Define a struct with a general method and call it
+      struct S {static func foo<I: SignedInteger>(_ si: I) {print("general")}}
+      S.foo(3)
+      """)
+    let sExtension = Source(named: "sExtension", containing: """
+      // Extend the structure and optionally add a specific method
+      extension S {
+        //# specificFuncInExtension static func foo(_ i: Int) {print("specific")}
+      }
+      // Also define a structure that won't be changed.
+      struct T {static func foo() {}}
+      """)
+    let userOfT = Source(named: "userOfT", containing: """
+      // Use the unchanging structure
+      func baz() {T.foo()}
+      """)
+    let instantiator = Source(named: "instantiator", containing: """
+      /// Instantiate the changing structure
+      func bar() {_ = S()}
+      """)
+
+   let mainModule = Module(named: "mainM",
+                            containing: [main, sExtension, userOfT, instantiator],
+                            producing: .executable)
+
+
+    let whenAddOrRmSpecificFunc = ExpectedCompilations(expected: [main, sExtension])
+
+    let steps = [
+      Step(                                   building: [mainModule], .expecting([mainModule].allSourcesToCompile, "general")),
+      Step(                                   building: [mainModule], .expecting(.none,                            "general")),
+      Step(adding: "specificFuncInExtension", building: [mainModule], .expecting(whenAddOrRmSpecificFunc,          "specific")),
+      Step(                                   building: [mainModule], .expecting(whenAddOrRmSpecificFunc,          "general")),
+      Step(adding: "specificFuncInExtension", building: [mainModule], .expecting(whenAddOrRmSpecificFunc,          "specific")),
+    ]
+
+    try IncrementalTest.perform(steps)
+  }
+}
+
+/// Try fileprivate extension style
+fileprivate extension Source {
+  static var main: Source {
+    Self(
+    named: "main",
+    containing: """
+            struct S {static func foo<I: SignedInteger>(_ si: I) {}}
+            S.foo(3)
+            """)
+  }
+}
+

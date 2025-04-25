@@ -1,0 +1,33 @@
+name: test
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+on:
+  pull_request: { types: [opened, reopened, synchronize, ready_for_review] }
+  push: { branches: [ main ] }
+env:
+  LOG_LEVEL: info
+  SWIFT_DETERMINISTIC_HASHING: 1
+
+jobs:
+  unit-tests:
+    uses: vapor/ci/.github/workflows/run-unit-tests.yml@main
+    secrets: inherit
+  
+  upstream-check:
+    runs-on: ubuntu-latest
+    container: swift:5.10-jammy
+    steps:
+      - name: Check out self
+        uses: actions/checkout@v4
+        with:
+          path: routing-kit
+      - name: Check out Vapor
+        uses: actions/checkout@v4
+        with:
+          repository: vapor/vapor
+          path: vapor
+      - name: Use local package
+        run: swift package --package-path vapor edit routing-kit --path routing-kit
+      - name: Run tests
+        run: swift test --package-path vapor

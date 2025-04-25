@@ -1,0 +1,89 @@
+//===--- RangeSelection.swift ---------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import StdlibUnittest
+
+public enum RangeSelection {
+  case emptyRange
+  case leftEdge
+  case rightEdge
+  case middle
+  case leftHalf
+  case rightHalf
+  case full
+  case offsets(Int, Int)
+
+  public var isEmpty: Bool {
+    switch self {
+    case .emptyRange: return true
+    default: return false
+    }
+  }
+
+  public func range<C : Collection>(in c: C) -> Range<C.Index> {
+    switch self {
+      case .emptyRange: return c.endIndex..<c.endIndex
+      case .leftEdge: return c.startIndex..<c.startIndex
+      case .rightEdge: return c.endIndex..<c.endIndex
+      case .middle:
+        let start = c.index(c.startIndex, offsetBy: c.count / 4)
+        let end = c.index(c.startIndex, offsetBy: 3 * c.count / 4 + 1)
+        return start..<end
+      case .leftHalf:
+        let start = c.startIndex
+        let end = c.index(start, offsetBy: c.count / 2)
+        return start..<end
+      case .rightHalf:
+        let start = c.index(c.startIndex, offsetBy: c.count / 2)
+        let end = c.endIndex
+        return start..<end
+      case .full:
+        return c.startIndex..<c.endIndex
+      case let .offsets(lowerBound, upperBound):
+        let start = c.index(c.startIndex, offsetBy: lowerBound)
+        let end = c.index(c.startIndex, offsetBy: upperBound)
+        return start..<end
+    }
+  }
+
+  public func closedRange<C : Collection>(in c: C) -> ClosedRange<C.Index> {
+    switch self {
+      case .emptyRange: fatalError("Closed range cannot be empty")
+      case .leftEdge: return c.startIndex...c.startIndex
+      case .rightEdge:
+        let beforeEnd = c.index(c.startIndex, offsetBy: c.count - 1)
+        return beforeEnd...beforeEnd
+      case .middle:
+        let start = c.index(c.startIndex, offsetBy: c.count / 4)
+        let end = c.index(c.startIndex, offsetBy: 3 * c.count / 4)
+        return start...end
+      case .leftHalf:
+        let start = c.startIndex
+        let end = c.index(start, offsetBy: c.count / 2 - 1)
+        return start...end
+      case .rightHalf:
+        let start = c.index(c.startIndex, offsetBy: c.count / 2)
+        let beforeEnd = c.index(c.startIndex, offsetBy: c.count - 1)
+        return start...beforeEnd
+      case .full:
+        let beforeEnd = c.index(c.startIndex, offsetBy: c.count - 1)
+        return c.startIndex...beforeEnd
+      case let .offsets(lowerBound, upperBound):
+        let start = c.index(c.startIndex, offsetBy: lowerBound)
+        let end = c.index(c.startIndex, offsetBy: upperBound)
+        return start...end
+    }
+  }
+}

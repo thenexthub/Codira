@@ -1,0 +1,48 @@
+//===--- COWArrayGuaranteedParameterOverhead.swift ------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import TestsUtils
+
+// This test makes sure that even though we have +0 arguments by default that we
+// can properly convert +0 -> +1 to avoid extra COW copies.
+
+public let benchmarks =
+  BenchmarkInfo(
+    name: "COWArrayGuaranteedParameterOverhead",
+    runFunction: run_COWArrayGuaranteedParameterOverhead,
+    tags: [.regression, .abstraction, .refcount],
+    legacyFactor: 50
+  )
+
+@inline(never)
+func caller() {
+  let x = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+  blackHole(callee(x))
+}
+
+@inline(never)
+func callee(_ x: [Int]) -> [Int] {
+  var y = x
+  // This should not copy.
+  y[2] = 27
+  return y
+}
+
+@inline(never)
+public func run_COWArrayGuaranteedParameterOverhead(_ n: Int) {
+  for _ in 0..<n*400 {
+    caller()
+  }
+}

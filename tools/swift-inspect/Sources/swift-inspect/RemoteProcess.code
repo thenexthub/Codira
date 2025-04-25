@@ -1,0 +1,63 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import SwiftRemoteMirror
+
+internal protocol RemoteProcess: AnyObject {
+  associatedtype ProcessIdentifier
+  associatedtype ProcessHandle
+
+  var process: ProcessHandle { get }
+  var context: SwiftReflectionContextRef! { get }
+  var processIdentifier: ProcessIdentifier { get }
+  var processName: String { get }
+
+  typealias QueryDataLayoutFunction =
+      @convention(c) (UnsafeMutableRawPointer?, DataLayoutQueryType,
+                      UnsafeMutableRawPointer?, UnsafeMutableRawPointer?) -> CInt
+  typealias FreeFunction =
+      @convention(c) (UnsafeMutableRawPointer?, UnsafeRawPointer?,
+                      UnsafeMutableRawPointer?) -> Void
+  typealias ReadBytesFunction =
+      @convention(c) (UnsafeMutableRawPointer?, swift_addr_t, UInt64,
+                      UnsafeMutablePointer<UnsafeMutableRawPointer?>?) -> UnsafeRawPointer?
+  typealias GetStringLengthFunction =
+      @convention(c) (UnsafeMutableRawPointer?, swift_addr_t) -> UInt64
+  typealias GetSymbolAddressFunction =
+      @convention(c) (UnsafeMutableRawPointer?, UnsafePointer<CChar>?, UInt64) -> swift_addr_t
+
+  static var QueryDataLayout: QueryDataLayoutFunction { get }
+  static var Free: FreeFunction? { get }
+  static var ReadBytes: ReadBytesFunction { get }
+  static var GetStringLength: GetStringLengthFunction { get }
+  static var GetSymbolAddress: GetSymbolAddressFunction { get }
+
+  func symbolicate(_ address: swift_addr_t) -> (module: String?, symbol: String?)
+  func iterateHeap(_ body: (swift_addr_t, UInt64) -> Void)
+}
+
+extension RemoteProcess {
+  internal func toOpaqueRef() -> UnsafeMutableRawPointer {
+    return Unmanaged.passRetained(self).toOpaque()
+  }
+
+  internal static func fromOpaque(_ ptr: UnsafeRawPointer) -> Self {
+    return Unmanaged.fromOpaque(ptr).takeUnretainedValue()
+  }
+
+  internal func release() {
+    Unmanaged.passUnretained(self).release()
+  }
+}

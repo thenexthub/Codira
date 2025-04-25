@@ -1,0 +1,55 @@
+//===--- Ackermann.swift --------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+// This test is based on test Ackermann from utils/benchmark, with modifications
+// for performance measuring.
+import TestsUtils
+
+public let benchmarks =
+  BenchmarkInfo(
+    name: "Ackermann2",
+    runFunction: run_Ackermann,
+    tags: [.algorithm])
+
+func _ackermann(_ m: Int, _ n : Int) -> Int {
+  if (m == 0) { return n + 1 }
+  if (n == 0) { return _ackermann(m - 1, 1) }
+  return _ackermann(m - 1, _ackermann(m, n - 1))
+}
+
+@inline(never)
+func ackermann(_ m: Int, _ n : Int) -> Int {
+  // This if prevents optimizer from computing return value of Ackermann(3,9)
+  // at compile time.
+  if getFalse() { return 0 }
+  if (m == 0) { return n + 1 }
+  if (n == 0) { return _ackermann(m - 1, 1) }
+  return _ackermann(m - 1, _ackermann(m, n - 1))
+}
+
+let ref_result = [5, 13, 29, 61, 125, 253, 509, 1021, 2045, 4093, 8189, 16381, 32765, 65533, 131069]
+
+@inline(never)
+public func run_Ackermann(_ N: Int) {
+  let (m, n) = (3, 6)
+  var result = 0
+  for _ in 1...N {
+    result = ackermann(m, n)
+    if result != ref_result[n] {
+      break
+    }
+  }
+  check(result == ref_result[n])
+}

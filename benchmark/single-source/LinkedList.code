@@ -1,0 +1,61 @@
+//===--- LinkedList.swift -------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+// This test checks performance of linked lists. It is based on LinkedList from
+// utils/benchmark, with modifications for performance measuring.
+import TestsUtils
+
+// 47% _swift_retain
+// 43% _swift_release
+public let benchmarks =
+  BenchmarkInfo(
+    name: "LinkedList",
+    runFunction: run_LinkedList,
+    tags: [.runtime, .cpubench, .refcount],
+    setUpFunction: { for i in 0..<size { head = Node(n:head, d:i) } },
+    tearDownFunction: { head = Node(n:nil, d:0) },
+    legacyFactor: 40)
+
+let size = 100
+var head = Node(n:nil, d:0)
+
+final class Node {
+  var next: Node?
+  var data: Int
+
+  init(n: Node?, d: Int) {
+    next = n
+    data = d
+  }
+}
+
+@inline(never)
+public func run_LinkedList(_ n: Int) {
+  var sum = 0
+  let ref_result = size*(size-1)/2
+  var ptr = head
+  for _ in 1...125*n {
+    ptr = head
+    sum = 0
+    while let nxt = ptr.next {
+      sum += ptr.data
+      ptr = nxt
+    }
+    if sum != ref_result {
+      break
+    }
+  }
+  check(sum == ref_result)
+}

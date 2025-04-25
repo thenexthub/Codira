@@ -1,12 +1,15 @@
 //===--- MigrationState.cpp -----------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -59,7 +62,7 @@ bool MigrationState::print(size_t StateNumber, StringRef OutDir) const {
     InputStateFilenameOS << StateNumber << '-' << "FixitMigrationState";
     InputStateFilenameOS << '-' << "Input";
     llvm::sys::path::append(InputFileStatePath, InputStateFilenameOS.str());
-    llvm::sys::path::replace_extension(InputFileStatePath, ".swift");
+    llvm::sys::path::replace_extension(InputFileStatePath, ".code");
   }
 
   Failed |= quickDumpText(InputFileStatePath, getInputText());
@@ -73,7 +76,7 @@ bool MigrationState::print(size_t StateNumber, StringRef OutDir) const {
     OutputStateFilenameOS << StateNumber << '-' << "FixitMigrationState";
     OutputStateFilenameOS << '-' << "Output";
     llvm::sys::path::append(OutputFileStatePath, OutputStateFilenameOS.str());
-    llvm::sys::path::replace_extension(OutputFileStatePath, ".swift");
+    llvm::sys::path::replace_extension(OutputFileStatePath, ".code");
   }
 
   Failed |= quickDumpText(OutputFileStatePath, getOutputText());

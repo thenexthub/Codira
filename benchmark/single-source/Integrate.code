@@ -1,0 +1,76 @@
+//===--- Integrate.swift --------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import TestsUtils
+
+// A micro-benchmark for recursive divide and conquer problems.
+// The program performs integration via Gaussian Quadrature
+
+public let benchmarks =
+  BenchmarkInfo(
+    name: "Integrate",
+    runFunction: run_Integrate,
+    tags: [.validation, .algorithm])
+
+class Integrate {
+  static let epsilon = 1.0e-9
+
+  let fun: (Double) -> Double
+
+  init (f: @escaping (Double) -> Double) {
+    fun = f
+  }
+    
+  private func recEval(_ l: Double, fl: Double, r: Double, fr: Double, a: Double) -> Double {
+    let h = (r - l) / 2
+    let hh = h / 2
+    let c = l + h
+    let fc = fun(c)
+    let al = (fl + fc) * hh
+    let ar = (fr + fc) * hh
+    let alr = al + ar
+    let error = abs(alr-a)
+    if (error < Integrate.epsilon) {
+      return alr
+    } else {
+      let a1 = recEval(c, fl:fc, r:r, fr:fr, a:ar)
+      let a2 = recEval(l, fl:fl, r:c, fr:fc, a:al)
+      return a1 + a2
+    }
+  }
+
+  @inline(never)
+  func computeArea(_ left: Double, right: Double) -> Double {
+    return recEval(left, fl:fun(left), r:right, fr:fun(right), a:0)
+  }
+}
+
+@inline(never)
+public func run_Integrate(_ n: Int) {
+  let obj = Integrate(f: { x in (x*x + 1.0) * x})
+  let left = 0.0
+  let right = 10.0
+  let ref_result = 2550.0
+  let bound = 0.0001
+  var result = 0.0
+  for _ in 1...n {
+    result = obj.computeArea(left, right:right)
+    if abs(result - ref_result) > bound {
+      break
+    }
+  }
+
+  check(abs(result - ref_result) < bound)
+}

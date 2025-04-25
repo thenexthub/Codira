@@ -1,0 +1,49 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import ArgumentParser
+import SwiftRemoteMirror
+
+internal struct DumpRawMetadata: ParsableCommand {
+  static let configuration = CommandConfiguration(
+    abstract: "Print the target's metadata allocations.")
+
+  @OptionGroup()
+  var options: UniversalOptions
+
+  @OptionGroup()
+  var backtraceOptions: BacktraceOptions
+
+  func run() throws {
+    try inspect(options: options) { process in
+      let stacks: [swift_reflection_ptr_t:[swift_reflection_ptr_t]]? =
+          backtraceOptions.style == nil
+              ? nil
+              : try process.context.allocationStacks
+
+      try process.context.allocations.forEach { allocation in
+        let name: String = process.context.name(allocation: allocation.tag) ??  "<unknown>"
+        print("Metadata allocation at: \(hex: allocation.ptr) size: \(allocation.size) tag: \(allocation.tag) (\(name))")
+        if let style = backtraceOptions.style {
+          if let stack = stacks?[allocation.ptr] {
+            print(backtrace(stack, style: style, process.symbolicate))
+          } else {
+            print("  No stack trace available")
+          }
+        }
+      }
+    }
+  }
+}

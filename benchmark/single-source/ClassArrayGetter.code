@@ -1,0 +1,56 @@
+//===--- ClassArrayGetter.swift -------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import TestsUtils
+
+public let benchmarks =
+  BenchmarkInfo(
+    name: "ClassArrayGetter2",
+    runFunction: run_ClassArrayGetter,
+    tags: [.validation, .api, .Array],
+    setUpFunction: { blackHole(inputArray) },
+    tearDownFunction: { inputArray = nil },
+    legacyFactor: 10)
+
+class Box {
+  var v: Int
+  init(v: Int) { self.v = v }
+}
+
+@inline(never)
+func sumArray(_ a: [Box]) -> Int {
+  var s = 0
+  for i in 0..<a.count {
+    s += a[i].v
+  }
+  return s
+}
+
+var inputArray: [Box]! = {
+  let aSize = 10_000
+  var a: [Box] = []
+  a.reserveCapacity(aSize)
+  for i in 1...aSize {
+    a.append(Box(v:i))
+  }
+  return a
+}()
+
+public func run_ClassArrayGetter(_ n: Int) {
+  let a: [Box] = inputArray
+  for _ in 1...n {
+    _ = sumArray(a)
+  }
+}

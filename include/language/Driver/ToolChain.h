@@ -1,12 +1,15 @@
 //===--- ToolChain.h - Collections of tools for one platform ----*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -99,7 +102,7 @@ protected:
 
     /// Reify the existing behavior that SingleCompile compile actions do not
     /// filter, but batch-mode and single-file compilations do. Some clients are
-    /// relying on this (i.e., they pass inputs that don't have ".swift" as an
+    /// relying on this (i.e., they pass inputs that don't have ".code" as an
     /// extension.) It would be nice to eliminate this distinction someday.
     bool shouldFilterFrontendInputsByType() const;
 

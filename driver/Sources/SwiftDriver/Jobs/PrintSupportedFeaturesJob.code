@@ -1,0 +1,39 @@
+//===------- PrintSupportedFeaturesJob.swift - Swift Target Info Job ------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+extension Toolchain {
+  @_spi(Testing) public func printSupportedFeaturesJob(
+    requiresInPlaceExecution: Bool = false,
+    swiftCompilerPrefixArgs: [String]
+  ) throws -> Job {
+    var commandLine: [Job.ArgTemplate] = swiftCompilerPrefixArgs.map { Job.ArgTemplate.flag($0) }
+    commandLine.append(contentsOf: [
+      .flag("-frontend"),
+      .flag("-print-supported-features"),
+    ])
+
+    return Job(
+      moduleName: "",
+      kind: .printSupportedFeatures,
+      tool: try resolvedTool(.swiftCompiler),
+      commandLine: commandLine,
+      displayInputs: [],
+      inputs: [],
+      primaryInputs: [],
+      outputs: [.init(file: .standardOutput, type: .jsonSupportedFeatures)],
+      requiresInPlaceExecution: requiresInPlaceExecution
+    )
+  }
+}

@@ -138,12 +138,12 @@ def collect_slices(xfails, swiftmodule_dir):
         return
     module_name, extension = \
         os.path.splitext(os.path.basename(swiftmodule_dir))
-    assert extension == ".swiftmodule"
+    assert extension == ".codemodule"
 
     is_xfail = module_name in xfails
     for entry in os.listdir(swiftmodule_dir):
         _, extension = os.path.splitext(entry)
-        if extension == ".swiftinterface":
+        if extension == ".codeinterface":
             yield ModuleFile(module_name, os.path.join(swiftmodule_dir, entry),
                              is_xfail)
 
@@ -159,7 +159,7 @@ def collect_framework_modules(sdk, xfails, sdk_relative_framework_dirs):
                 continue
             module_name = os.path.basename(path_without_extension)
             swiftmodule = os.path.join(framework_dir, entry, "Modules",
-                                       module_name + ".swiftmodule")
+                                       module_name + ".codemodule")
             if os.access(swiftmodule, os.R_OK):
                 for x in collect_slices(xfails, swiftmodule):
                     yield x
@@ -169,13 +169,13 @@ def collect_non_framework_modules(sdk, xfails, sdk_relative_search_dirs):
     for sdk_relative_search_dir in sdk_relative_search_dirs:
         search_dir = os.path.join(sdk, sdk_relative_search_dir)
         for dir_path, _, file_names in os.walk(search_dir, followlinks=True):
-            if os.path.splitext(dir_path)[1] == ".swiftmodule":
+            if os.path.splitext(dir_path)[1] == ".codemodule":
                 for x in collect_slices(xfails, dir_path):
                     yield x
             else:
                 for interface in file_names:
                     module_name, extension = os.path.splitext(interface)
-                    if extension == ".swiftinterface":
+                    if extension == ".codeinterface":
                         is_xfail = module_name in xfails
                         yield ModuleFile(module_name,
                                          os.path.join(dir_path, interface),
@@ -292,12 +292,12 @@ def process_module(module_file):
         command_args += ('-module-name', module_file.name, module_file.path)
 
         output_path = os.path.join(args.output_dir,
-                                   module_file.name + ".swiftmodule")
+                                   module_file.name + ".codemodule")
 
         if interface_base != module_file.name:
             make_dirs_if_needed(output_path)
             output_path = os.path.join(output_path,
-                                       interface_base + ".swiftmodule")
+                                       interface_base + ".codemodule")
 
         command_args += ('-o', output_path)
 

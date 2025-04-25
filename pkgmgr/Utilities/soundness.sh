@@ -40,7 +40,7 @@ fi
 printf "\033[0;32mokay.\033[0m\n"
 
 printf "=> Checking format... \n"
-git diff --name-only | grep -v ".swiftpm" | grep ".swift" | while read changed_file; do
+git diff --name-only | grep -v ".codepm" | grep ".code" | while read changed_file; do
   printf "  * checking ${changed_file}... "
   before=$(cat ${changed_file})
   swiftformat $changed_file > /dev/null 2>&1

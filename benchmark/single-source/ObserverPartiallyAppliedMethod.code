@@ -1,0 +1,52 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import TestsUtils
+
+public let benchmarks =
+  BenchmarkInfo(
+    name: "ObserverPartiallyAppliedMethod",
+    runFunction: run_ObserverPartiallyAppliedMethod,
+    tags: [.validation],
+    legacyFactor: 20)
+
+class Observer {
+  @inline(never)
+  func receive(_ value: Int) {
+  }
+}
+
+class Signal {
+  var observers: [(Int) -> ()] = []
+
+  func subscribe(_ observer: @escaping (Int) -> ()) {
+    observers.append(observer)
+  }
+
+  func send(_ value: Int) {
+    for observer in observers {
+      observer(value)
+    }
+  }
+}
+
+public func run_ObserverPartiallyAppliedMethod(_ iterations: Int) {
+  let signal = Signal()
+  let observer = Observer()
+  for _ in 0 ..< 500 * iterations {
+    signal.subscribe(observer.receive)
+  }
+  signal.send(1)
+}

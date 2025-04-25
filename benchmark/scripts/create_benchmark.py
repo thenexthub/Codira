@@ -60,7 +60,7 @@ def create_benchmark_file(name):
     )
 
     file_path_prefix = create_relative_path("../single-source/")
-    file_path = os.path.join(file_path_prefix, name + ".swift")
+    file_path = os.path.join(file_path_prefix, name + ".code")
     with open(file_path, "w") as f:
         f.write(file_text)
 

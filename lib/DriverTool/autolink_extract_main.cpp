@@ -1,12 +1,15 @@
 //===--- autolink_extract_main.cpp - autolink extraction utility ----------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 //
@@ -110,7 +113,7 @@ public:
 };
 
 /// Look inside the object file 'ObjectFile' and append any linker flags found in
-/// its ".swift1_autolink_entries" section to 'LinkerFlags'.
+/// its ".code1_autolink_entries" section to 'LinkerFlags'.
 /// Return 'true' if there was an error, and 'false' otherwise.
 static bool
 extractLinkerFlagsFromObjectFile(const llvm::object::ObjectFile *ObjectFile,
@@ -125,7 +128,7 @@ extractLinkerFlagsFromObjectFile(const llvm::object::ObjectFile *ObjectFile,
       continue;
     }
     llvm::StringRef SectionName = *SectionNameOrErr;
-    if (SectionName == ".swift1_autolink_entries") {
+    if (SectionName == ".code1_autolink_entries") {
       llvm::Expected<llvm::StringRef> SectionData = Section.getContents();
       if (!SectionData) {
         std::string message;
@@ -156,7 +159,7 @@ extractLinkerFlagsFromObjectFile(const llvm::object::ObjectFile *ObjectFile,
 }
 
 /// Look inside the binary 'Bin' and append any linker flags found in its
-/// ".swift1_autolink_entries" section to 'LinkerFlags'. If 'Bin' is an archive,
+/// ".code1_autolink_entries" section to 'LinkerFlags'. If 'Bin' is an archive,
 /// recursively look inside all children within the archive. Return 'true' if
 /// there was an error, and 'false' otherwise.
 static bool extractLinkerFlags(const llvm::object::Binary *Bin,

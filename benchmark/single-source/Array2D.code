@@ -1,0 +1,53 @@
+//===--- Array2D.swift ----------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import TestsUtils
+
+public let benchmarks =
+  BenchmarkInfo(
+    name: "Array2D",
+    runFunction: run_Array2D,
+    tags: [.validation, .api, .Array],
+    setUpFunction: { blackHole(inputArray) },
+    tearDownFunction: { inputArray = nil },
+    legacyFactor: 16)
+
+let size = 256
+
+var inputArray: [[Int]]! = {
+  var a: [[Int]] = []
+  a.reserveCapacity(size)
+  for _ in 0 ..< size {
+    a.append(Array(0 ..< size))
+  }
+  return a
+}()
+
+@inline(never)
+func modifyArray(_ a: inout [[Int]], _ n: Int) {
+  for _ in 0..<n {
+    for i in 0 ..< size {
+      for y in 0 ..< size {
+        a[i][y] = a[i][y] + 1
+        a[i][y] = a[i][y] - 1
+      }
+    }
+  }
+}
+
+@inline(never)
+public func run_Array2D(_ n: Int) {
+  modifyArray(&inputArray, n)
+}

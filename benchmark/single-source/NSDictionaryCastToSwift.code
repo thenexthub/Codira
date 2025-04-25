@@ -1,0 +1,44 @@
+//===--- NSDictionaryCastToSwift.swift ------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+// Performance benchmark for casting NSDictionary to Swift Dictionary
+// rdar://problem/18539730
+//
+// Description:
+//     Create an NSDictionary instance and cast it to [String: NSObject].
+import Foundation
+import TestsUtils
+
+public let benchmarks =
+  BenchmarkInfo(
+    name: "NSDictionaryCastToSwift",
+    runFunction: run_NSDictionaryCastToSwift,
+    tags: [.validation, .api, .Dictionary, .bridging],
+    legacyFactor: 10)
+
+@inline(never)
+public func run_NSDictionaryCastToSwift(_ n: Int) {
+#if _runtime(_ObjC)
+    let nsdict = NSDictionary()
+    var swiftDict = [String: NSObject]()
+    for _ in 1...1_000*n {
+        swiftDict = nsdict as! [String: NSObject]
+        if !swiftDict.isEmpty {
+            break
+        }
+    }
+    check(swiftDict.isEmpty)
+#endif
+}

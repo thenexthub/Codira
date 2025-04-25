@@ -1,0 +1,73 @@
+//===--- DictionaryCopy.swift ---------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+// This benchmark checks for quadratic behavior while copying elements in hash
+// order between Dictionaries of decreasing capacity
+//
+// https://github.com/apple/swift/issues/45856
+
+import TestsUtils
+
+let t: [BenchmarkCategory] = [.validation, .api, .Dictionary]
+
+// We run the test at a spread of sizes between 1*x and 2*x, because the
+// quadratic behavior only happens at certain load factors.
+
+public let benchmarks = [
+  BenchmarkInfo(name:"Dict.CopyKeyValue.16k",
+    runFunction: copyKeyValue, tags: t, setUpFunction: { dict(16_000) }),
+  BenchmarkInfo(name:"Dict.CopyKeyValue.20k",
+    runFunction: copyKeyValue, tags: t, setUpFunction: { dict(20_000) }),
+  BenchmarkInfo(name:"Dict.CopyKeyValue.24k",
+    runFunction: copyKeyValue, tags: t, setUpFunction: { dict(24_000) }),
+  BenchmarkInfo(name:"Dict.CopyKeyValue.28k",
+    runFunction: copyKeyValue, tags: t, setUpFunction: { dict(28_000) }),
+
+  BenchmarkInfo(name:"Dict.FilterAllMatch.16k",
+    runFunction: filterAllMatch, tags: t, setUpFunction: { dict(16_000) }),
+  BenchmarkInfo(name:"Dict.FilterAllMatch.20k",
+    runFunction: filterAllMatch, tags: t, setUpFunction: { dict(20_000) }),
+  BenchmarkInfo(name:"Dict.FilterAllMatch.24k",
+    runFunction: filterAllMatch, tags: t, setUpFunction: { dict(24_000) }),
+  BenchmarkInfo(name:"Dict.FilterAllMatch.28k",
+    runFunction: filterAllMatch, tags: t, setUpFunction: { dict(28_000) }),
+]
+
+var dict: [Int: Int]?
+
+func dict(_ size: Int) {
+  dict = Dictionary(uniqueKeysWithValues: zip(1...size, 1...size))
+}
+
+@inline(never)
+func copyKeyValue(n: Int) {
+  for _ in 1...n {
+    var copy = [Int: Int]()
+    for (key, value) in dict! {
+      copy[key] = value
+    }
+    check(copy.count == dict!.count)
+  }
+}
+
+// Filter with a predicate returning true is essentially the same loop as the
+// one in copyKeyValue above.
+@inline(never)
+func filterAllMatch(n: Int) {
+  for _ in 1...n {
+    let copy = dict!.filter { _ in true }
+    check(copy.count == dict!.count)
+  }
+}

@@ -1,0 +1,40 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import SwiftRemoteMirror
+
+internal enum BacktraceStyle {
+  case oneline
+  case long
+}
+
+internal func backtrace(_ stack: [swift_reflection_ptr_t], style: BacktraceStyle,
+                        _ symbolicate: (swift_addr_t) -> (module: String?, symbol: String?)) -> String {
+  func entry(_ address: swift_reflection_ptr_t) -> String {
+    let (module, symbol) = symbolicate(swift_addr_t(address))
+    return "\(hex: address) (\(module ?? "<unknown>")) \(symbol ??  "<unknown>")"
+  }
+
+  // The pointers to the locations in the backtrace are stored from deepest to
+  // shallowest, so `main` will be somewhere near the end.
+  switch style {
+  case .oneline:
+    return stack.reversed().map { entry($0) }.joined(separator: " | ")
+  case .long:
+    return stack.reversed().enumerated().map {
+      " \(String(repeating: " ", count: $0 + 1))\(entry($1))"
+    }.joined(separator: "\n")
+  }
+}

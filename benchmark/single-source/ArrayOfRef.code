@@ -1,0 +1,119 @@
+//===--- ArrayOfRef.swift -------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+// This benchmark tests creation and destruction of an array of
+// references. It is meant to be a baseline for comparison against
+// ArrayOfGenericRef.
+//
+// For comparison, we always create four arrays of 1,000 words.
+
+import TestsUtils
+
+public let benchmarks =
+  BenchmarkInfo(
+    name: "ArrayOfRef",
+    runFunction: run_ArrayOfRef,
+    tags: [.validation, .api, .Array],
+    legacyFactor: 10)
+
+protocol Constructible {
+  associatedtype Element
+  init(e:Element)
+}
+class ConstructibleArray<T:Constructible> {
+  var array : [T]
+
+  init(_ e:T.Element) {
+    array = [T]()
+    array.reserveCapacity(1_000)
+    for _ in 0...1_000 {
+      array.append(T(e:e))
+    }
+  }
+}
+
+// Reference to a POD class.
+class POD : Constructible {
+  typealias Element=Int
+  var x: Int
+  required init(e:Int) { self.x = e }
+}
+
+@inline(never)
+func genPODRefArray() {
+  blackHole(ConstructibleArray<POD>(3))
+  // should be a nop
+}
+
+class Dummy {}
+
+// Reference to a reference. The nested reference is shared across elements.
+class CommonRef : Constructible {
+  typealias Element=Dummy
+  var d: Dummy
+  required init(e:Dummy) { self.d = e }
+}
+
+@inline(never)
+func genCommonRefArray() {
+  let d = Dummy()
+  blackHole(ConstructibleArray<CommonRef>(d))
+  // should be a nop
+}
+
+enum RefEnum {
+  case None
+  case Some(Dummy)
+}
+
+// Reuse the same enum value for each element.
+class RefArray<T> {
+  var array : [T]
+
+  init(_ i:T, count:Int = 1_000) {
+    array = [T](repeating: i, count: count)
+  }
+}
+
+@inline(never)
+func genRefEnumArray() {
+  let e = RefEnum.Some(Dummy())
+  blackHole(RefArray<RefEnum>(e))
+  // should be a nop
+}
+
+// Struct holding a reference.
+struct S : Constructible {
+  typealias Element=Dummy
+  var d: Dummy
+  init(e:Dummy) { self.d = e }
+}
+
+@inline(never)
+func genRefStructArray() {
+  let d = Dummy()
+  blackHole(ConstructibleArray<S>(d))
+  // should be a nop
+}
+
+@inline(never)
+public func run_ArrayOfRef(_ n: Int) {
+  for _ in 0..<n {
+    genPODRefArray()
+    genCommonRefArray()
+    genRefEnumArray()
+    genRefStructArray()
+  }
+}

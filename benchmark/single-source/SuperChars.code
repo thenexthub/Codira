@@ -1,0 +1,47 @@
+//===--- SuperChars.swift -------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+// This test tests the performance of ASCII Character comparison.
+import TestsUtils
+
+public let benchmarks =
+  BenchmarkInfo(
+    name: "SuperChars2",
+    runFunction: run_SuperChars,
+    tags: [.validation, .api, .String],
+    setUpFunction: { blackHole(alphabetInput) })
+
+// Permute some characters.
+let alphabetInput: [Character] = [
+  "A", "B", "C", "D", "E", "F", "«",
+  "á", "お", "S", "T", "U", "🇯🇵",
+  "🧟‍♀️", "👩‍👦‍👦", "🕴🏿", "2", "?",
+  ]
+
+@inline(never)
+public func run_SuperChars(_ n: Int) {
+  // Permute some characters.
+  let alphabet: [Character] = alphabetInput
+
+  for _ in 0..<n {
+    for firstChar in alphabet {
+      for middleChar in alphabet {
+        for lastChar in alphabet {
+          blackHole((firstChar == middleChar) != (middleChar < lastChar))
+        }
+      }
+    }
+  }
+}

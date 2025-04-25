@@ -586,7 +586,7 @@ class ModuleInterfaceLoaderImpl {
     auto fileName = llvm::sys::path::filename(interfacePath);
     {
       llvm::SmallString<256> path(backupInterfaceDir);
-      llvm::sys::path::append(path, llvm::Twine(moduleName) + ".swiftmodule");
+      llvm::sys::path::append(path, llvm::Twine(moduleName) + ".codemodule");
       llvm::sys::path::append(path, fileName);
       if (fs.exists(path.str())) {
         return path.str().str();
@@ -672,7 +672,7 @@ class ModuleInterfaceLoaderImpl {
     // here? Then we could skip this check.
     StringRef inParentDirName =
       path::filename(path::parent_path(interfacePath));
-    if (path::extension(inParentDirName) == ".swiftmodule") {
+    if (path::extension(inParentDirName) == ".codemodule") {
       assert(path::stem(inParentDirName) ==
              ctx.getRealModuleName(ctx.getIdentifier(moduleName)).str());
       path::append(scratch, inParentDirName);
@@ -705,7 +705,7 @@ class ModuleInterfaceLoaderImpl {
     // If the module isn't target-specific, there's no fallback path.
     StringRef inParentDirName =
         path::filename(path::parent_path(interfacePath));
-    if (path::extension(inParentDirName) != ".swiftmodule")
+    if (path::extension(inParentDirName) != ".codemodule")
       return std::nullopt;
 
     // If the interface is already using the target-specific name, there's
@@ -720,7 +720,7 @@ class ModuleInterfaceLoaderImpl {
     scratch = prebuiltCacheDir;
     path::append(scratch, inParentDirName);
     path::append(scratch, normalizedTarget.str());
-    scratch += ".swiftmodule";
+    scratch += ".codemodule";
 
     // If there isn't a file at this location, skip returning a path.
     if (!fs.exists(scratch))

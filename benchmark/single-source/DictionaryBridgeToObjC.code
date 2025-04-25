@@ -1,0 +1,89 @@
+//===--- DictionaryBridgeToObjC.swift -------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+// Performance benchmark for common operations on Dictionary values bridged to
+// NSDictionary.
+import TestsUtils
+#if _runtime(_ObjC)
+import Foundation
+
+public let benchmarks = [
+  BenchmarkInfo(
+    name: "DictionaryBridgeToObjC_Bridge",
+    runFunction: run_DictionaryBridgeToObjC_BridgeToObjC,
+    tags: [.validation, .api, .Dictionary, .bridging]),
+  BenchmarkInfo(
+    name: "DictionaryBridgeToObjC_Access",
+    runFunction: run_DictionaryBridgeToObjC_Access,
+    tags: [.validation, .api, .Dictionary, .bridging]),
+  BenchmarkInfo(
+    name: "DictionaryBridgeToObjC_BulkAccess",
+    runFunction: run_DictionaryBridgeToObjC_BulkAccess,
+    tags: [.validation, .api, .Dictionary, .bridging])
+]
+
+let numbers: [String: Int] = [
+  "one": 1,
+  "two": 2,
+  "three": 3,
+  "four": 4,
+  "five": 5,
+  "six": 6,
+  "seven": 7,
+  "eight": 8,
+  "nine": 9,
+  "ten": 10,
+  "eleven": 11,
+  "twelve": 12,
+  "thirteen": 13,
+  "fourteen": 14,
+  "fifteen": 15,
+  "sixteen": 16,
+  "seventeen": 17,
+  "eighteen": 18,
+  "nineteen": 19,
+  "twenty": 20
+]
+
+@inline(never)
+public func run_DictionaryBridgeToObjC_BridgeToObjC(_ n: Int) {
+  for _ in 1 ... 100 * n {
+    blackHole(numbers as NSDictionary)
+  }
+}
+
+@inline(never)
+public func run_DictionaryBridgeToObjC_Access(_ n: Int) {
+  let d = numbers as NSDictionary
+  blackHole(d.object(forKey: "one")) // Force bridging of contents
+  for _ in 1 ... 100 * n {
+    for key in numbers.keys {
+      check(identity(d).object(forKey: key) != nil)
+    }
+  }
+}
+
+@inline(never)
+public func run_DictionaryBridgeToObjC_BulkAccess(_ n: Int) {
+  let d = numbers as NSDictionary
+  for _ in 1 ... 100 * n {
+    let d2 = NSDictionary(dictionary: identity(d))
+    check(d2.count == d.count)
+  }
+}
+
+#else // !_runtime(ObjC)
+public let benchmarks: [BenchmarkInfo] = []
+#endif

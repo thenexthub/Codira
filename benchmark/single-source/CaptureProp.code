@@ -1,0 +1,44 @@
+//===--- CaptureProp.swift ------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import TestsUtils
+
+public let benchmarks =
+  BenchmarkInfo(
+    name: "CaptureProp",
+    runFunction: run_CaptureProp,
+    tags: [.validation, .api, .refcount],
+    legacyFactor: 10)
+
+func sum(_ x:Int, y:Int) -> Int {
+  return x + y
+}
+
+@inline(never)
+func benchCaptureProp<S : Sequence
+>(
+  _ s: S, _ f: (S.Element, S.Element) -> S.Element) -> S.Element {
+
+  var it = s.makeIterator()
+  let initial = it.next()!
+  return IteratorSequence(it).reduce(initial, f)
+}
+
+public func run_CaptureProp(_ n: Int) {
+  let a = 1...10_000
+  for _ in 1...10*n {
+    _ = benchCaptureProp(a, sum)
+  }
+}

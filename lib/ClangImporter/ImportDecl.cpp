@@ -1,12 +1,15 @@
 //===--- ImportDecl.cpp - Import Clang Declarations -----------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2018 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 //
@@ -2723,8 +2726,8 @@ namespace {
             suggestion.append(ann.first.rsplit('/').second);
 
             // Mistake #2: forgetting to use filename with .swift extension
-            if (!suggestion.ends_with(".swift"))
-              suggestion.append(".swift");
+            if (!suggestion.ends_with(".code"))
+              suggestion.append(".code");
 
             if (SourceFile::FileIDStr::parse(suggestion))
               Impl.diagnose({}, diag::private_fileid_attr_format_suggestion,

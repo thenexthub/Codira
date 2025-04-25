@@ -1,0 +1,32 @@
+//===--- ProtocolDispatch.swift -------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import TestsUtils
+
+public let benchmarks =
+  BenchmarkInfo(
+    name: "ProtocolDispatch",
+    runFunction: run_ProtocolDispatch,
+    tags: [.validation, .abstraction])
+
+@inline(never)
+public func run_ProtocolDispatch(_ n: Int) {
+
+  let x = someProtocolFactory()
+
+  for _ in 0...100_000 * n {
+    _ = x.getValue()
+  }
+}

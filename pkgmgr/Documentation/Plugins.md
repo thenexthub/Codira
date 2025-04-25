@@ -154,7 +154,7 @@ struct MyPlugin: BuildToolPlugin {
         return try inputFiles.map {
             let inputFile = $0
             let inputPath = inputFile.path
-            let outputName = inputPath.stem + ".swift"
+            let outputName = inputPath.stem + ".code"
             let outputPath = context.pluginWorkDirectory.appending(outputName)
             return .buildCommand(
                 displayName: "Generating \(outputName) from \(inputPath.lastComponent)",

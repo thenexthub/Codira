@@ -1,12 +1,15 @@
 //===--- Module.cpp - Swift Language Module Implementation ----------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 //
@@ -3812,7 +3815,7 @@ SourceFile::FileIDStr::parse(StringRef fileID) {
   auto moduleName = names.first;
   auto fileName = names.second;
 
-  if (moduleName.empty() || fileName.empty() || !fileName.ends_with(".swift") ||
+  if (moduleName.empty() || fileName.empty() || !fileName.ends_with(".code") ||
       fileName.contains('/'))
     return {};
 

@@ -1,0 +1,83 @@
+//===--- CharacterLiteralsSmall.swift -------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+// This test tests the performance of Characters initialized from literals that
+// fit within the small (63 bits or fewer) representation and can be
+// represented as a packed integer.
+import TestsUtils
+
+public let benchmarks =
+  BenchmarkInfo(
+    name: "CharacterLiteralsSmall",
+    runFunction: run_CharacterLiteralsSmall,
+    tags: [.validation, .api, .String])
+
+@inline(never)
+func makeCharacter_UTF8Length1() -> Character {
+  return "a"
+}
+
+@inline(never)
+func makeCharacter_UTF8Length2() -> Character {
+  return "\u{00a9}"
+}
+
+@inline(never)
+func makeCharacter_UTF8Length3() -> Character {
+  return "a\u{0300}"
+}
+
+@inline(never)
+func makeCharacter_UTF8Length4() -> Character {
+  return "\u{00a9}\u{0300}"
+}
+
+@inline(never)
+func makeCharacter_UTF8Length5() -> Character {
+  return "a\u{0300}\u{0301}"
+}
+
+@inline(never)
+func makeCharacter_UTF8Length6() -> Character {
+  return "\u{00a9}\u{0300}\u{0301}"
+}
+
+@inline(never)
+func makeCharacter_UTF8Length7() -> Character {
+  return "a\u{0300}\u{0301}\u{0302}"
+}
+
+@inline(never)
+func makeCharacter_UTF8Length8() -> Character {
+  return "\u{00a9}\u{0300}\u{0301}\u{0302}"
+}
+
+@inline(never)
+func makeLiterals() {
+  blackHole(makeCharacter_UTF8Length1())
+  blackHole(makeCharacter_UTF8Length2())
+  blackHole(makeCharacter_UTF8Length3())
+  blackHole(makeCharacter_UTF8Length4())
+  blackHole(makeCharacter_UTF8Length5())
+  blackHole(makeCharacter_UTF8Length6())
+  blackHole(makeCharacter_UTF8Length7())
+  blackHole(makeCharacter_UTF8Length8())
+}
+
+public func run_CharacterLiteralsSmall(_ n: Int) {
+  for _ in 0...10000 * n {
+    makeLiterals()
+  }
+}

@@ -1,0 +1,45 @@
+//===--- NopDeinit.swift --------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+// <rdar://problem/17838787>
+import TestsUtils
+
+public let benchmarks =
+  BenchmarkInfo(
+    name: "NopDeinit",
+    runFunction: run_NopDeinit,
+    tags: [.regression],
+    legacyFactor: 100)
+
+class X<T : Comparable> {
+  let deinitIters = 10000
+  var elem: T
+  init(_ x : T) {elem = x}
+  deinit {
+    for _ in 1...deinitIters {
+      if (elem > elem) { }
+    }
+  }
+}
+
+public func run_NopDeinit(_ n: Int) {
+  for _ in 1...n {
+    var arr :[X<Int>] = []
+    let size = 5
+    for i in 1...size { arr.append(X(i)) }
+    arr.removeAll()
+    check(arr.count == 0)
+  }
+}

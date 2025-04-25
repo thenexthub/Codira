@@ -1,0 +1,13 @@
+Packages
+.build
+.index-build
+.DS_Store
+*.xcodeproj
+Package.pins
+Package.resolved
+DerivedData
+.swiftpm
+Tests/LinuxMain.swift
+.benchmarkBaselines/
+Benchmarks/.benchmarkBaselines/
+x5c_test_certs

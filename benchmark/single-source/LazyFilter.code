@@ -1,0 +1,76 @@
+//===--- LazyFilter.swift -------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+// This test checks performance of creating an array from lazily filtered
+// collections.
+import TestsUtils
+
+public let benchmarks = [
+  BenchmarkInfo(name: "LazilyFilteredArrays2",
+    runFunction: run_LazilyFilteredArrays,
+    tags: [.validation, .api, .Array],
+    setUpFunction: { blackHole(filteredRange) },
+    legacyFactor: 100),
+  BenchmarkInfo(name: "LazilyFilteredRange",
+    runFunction: run_LazilyFilteredRange,
+    tags: [.validation, .api, .Array],
+    legacyFactor: 10),
+  BenchmarkInfo(
+    name: "LazilyFilteredArrayContains",
+    runFunction: run_LazilyFilteredArrayContains,
+    tags: [.validation, .api, .Array],
+    setUpFunction: {
+      multiplesOfThree = Array(1..<500).lazy.filter { $0 % 3 == 0 } },
+    tearDownFunction: { multiplesOfThree = nil },
+    legacyFactor: 100),
+]
+
+@inline(never)
+public func run_LazilyFilteredRange(_ n: Int) {
+  var res = 123
+  let c = (1..<100_000).lazy.filter { $0 % 7 == 0 }
+  for _ in 1...n {
+    res += Array(c).count
+    res -= Array(c).count
+  }
+  check(res == 123)
+}
+
+let filteredRange = (1..<1_000).map({[$0]}).lazy.filter { $0.first! % 7 == 0 }
+
+@inline(never)
+public func run_LazilyFilteredArrays(_ n: Int) {
+  var res = 123
+  let c = filteredRange
+  for _ in 1...n {
+    res += Array(c).count
+    res -= Array(c).count
+  }
+  check(res == 123)
+}
+
+fileprivate var multiplesOfThree: LazyFilterCollection<Array<Int>>?
+
+@inline(never)
+fileprivate func run_LazilyFilteredArrayContains(_ n: Int) {
+  let xs = multiplesOfThree!
+  for _ in 1...n {
+    var filteredCount = 0
+    for candidate in 1..<500 {
+      filteredCount += xs.contains(candidate) ? 1 : 0
+    }
+    check(filteredCount == 166)
+  }
+}

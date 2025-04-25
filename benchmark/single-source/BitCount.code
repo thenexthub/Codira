@@ -1,0 +1,50 @@
+//===--- BitCount.swift ---------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+// This test checks performance of Swift bit count.
+// and mask operator.
+// rdar://problem/22151678
+import TestsUtils
+
+public let benchmarks =
+  BenchmarkInfo(
+    name: "BitCount",
+    runFunction: run_BitCount,
+    tags: [.validation, .algorithm])
+
+func countBitSet(_ num: Int) -> Int {
+  let bits = MemoryLayout<Int>.size * 8
+  var cnt: Int = 0
+  var mask: Int = 1
+  for _ in 0...bits {
+    if num & mask != 0 {
+      cnt += 1
+    }
+    mask <<= 1
+  }
+  return cnt
+}
+
+@inline(never)
+public func run_BitCount(_ n: Int) {
+  var sum = 0
+  for _ in 1...1000*n {
+    // Check some results.
+    sum = sum &+ countBitSet(getInt(1))
+              &+ countBitSet(getInt(2))
+              &+ countBitSet(getInt(2457))
+  }
+  check(sum == 8 * 1000 * n)
+}

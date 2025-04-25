@@ -1,0 +1,14 @@
+name: deploy-api-docs
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+     uses: vapor/api-docs/.github/workflows/build-and-deploy-docs-workflow.yml@main
+     secrets: inherit
+     with:
+       package_name: redis
+       modules: Redis
+       pathsToInvalidate: /redis/*

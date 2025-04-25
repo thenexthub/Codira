@@ -95,7 +95,7 @@ function(handle_swift_sources
   set(swift_sources)
   foreach(src ${${sourcesvar}})
     get_filename_component(extension ${src} EXT)
-    if(extension STREQUAL ".swift")
+    if(extension STREQUAL ".code")
       list(APPEND swift_sources ${src})
     else()
       list(APPEND result ${src})

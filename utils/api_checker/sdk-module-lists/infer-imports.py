@@ -92,8 +92,8 @@ def get_overlays(sdk_path):
     overlay_path = sdk_path + "/usr/lib/swift/"
     names = []
     for overlay in os.listdir(overlay_path):
-        if overlay.endswith(".swiftmodule"):
-            overlay = overlay[:-len(".swiftmodule")]
+        if overlay.endswith(".codemodule"):
+            overlay = overlay[:-len(".codemodule")]
             if overlay in denylist:
                 continue
             names.append(overlay)

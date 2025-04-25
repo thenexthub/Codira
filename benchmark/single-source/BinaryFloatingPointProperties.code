@@ -1,0 +1,76 @@
+//===--- BinaryFloatingPointProperties.swift ------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import TestsUtils
+
+public let benchmarks = [
+  BenchmarkInfo(
+    name: "BinaryFloatingPointPropertiesBinade",
+    runFunction: run_BinaryFloatingPointPropertiesBinade,
+    tags: [.validation, .algorithm]
+  ),
+  BenchmarkInfo(
+    name: "BinaryFloatingPointPropertiesNextUp",
+    runFunction: run_BinaryFloatingPointPropertiesNextUp,
+    tags: [.validation, .algorithm]
+  ),
+  BenchmarkInfo(
+    name: "BinaryFloatingPointPropertiesUlp",
+    runFunction: run_BinaryFloatingPointPropertiesUlp,
+    tags: [.validation, .algorithm]
+  )
+]
+
+@inline(never)
+public func run_BinaryFloatingPointPropertiesBinade(_ n: Int) {
+  var xs = [Double]()
+  xs.reserveCapacity(n)
+  for _ in 1...n {
+    var x = 0 as Double
+    for i in 0..<10000 {
+      x += Double(getInt(i)).binade
+    }
+    xs.append(x)
+  }
+  check(xs[getInt(0)] == 37180757)
+}
+
+@inline(never)
+public func run_BinaryFloatingPointPropertiesNextUp(_ n: Int) {
+  var xs = [Int]()
+  xs.reserveCapacity(n)
+  for _ in 1...n {
+    var x = 0 as Int
+    for i in 0..<10000 {
+      x += Int(Double(getInt(i)).nextUp)
+    }
+    xs.append(x)
+  }
+  check(xs[getInt(0)] == 49995000)
+}
+
+@inline(never)
+public func run_BinaryFloatingPointPropertiesUlp(_ n: Int) {
+  var xs = [Int]()
+  xs.reserveCapacity(n)
+  for _ in 1...n {
+    var x = 0 as Int
+    for i in 0..<10000 {
+      x += Int(Double(getInt(i)).ulp)
+    }
+    xs.append(x)
+  }
+  check(xs[getInt(0)] == 0)
+}

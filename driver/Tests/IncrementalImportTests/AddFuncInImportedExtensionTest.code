@@ -1,0 +1,89 @@
+//===-------------- ClassExtensionTest.swift - Swift Testing --------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import XCTest
+import TSCBasic
+import SwiftOptions
+import IncrementalTestFramework
+
+/// Test what happens when adding a function in an extension to a class and a struct.
+class AddFuncInImportedExtensionTest: XCTestCase {
+
+  func testAddFuncInImportedExtension() throws {
+
+    // MARK: - Define sources & imported module
+    let definer = Source(named: "definer", containing: """
+        // Define a class and a struct
+        open class C {public init() {}}
+        public struct S {public init() {}}
+        """)
+    let structExtension = Source( named: "structExtension", containing: """
+        // Extend the struct, possibly with an additional function.
+        public extension S{
+          //# withFunc func foo() {}
+        }
+        """)
+    let  classExtension = Source( named:  "classExtension", containing: """
+        // Extend the class, possibly with an additional function.
+        public extension C{
+          //# withFunc func foo() {}
+        }
+        """)
+
+    let importedModule = Module(
+      named: "ImportedModule",
+      containing: [definer, structExtension, classExtension],
+      producing: .library)
+
+    // MARK: - Define main module
+    let structConstructor = Source(named: "structConstructor", containing: """
+      // Instantiate the struct
+      import ImportedModule
+      func su() {_ = S()}
+      """)
+    let  classConstructor = Source(named:  "classConstructor", containing: """
+      /// Instantiate the class
+      import ImportedModule
+      func cu() {_ = C()}
+      """)
+
+    let mainFile = Source(named: "main", containing: "")
+
+    let mainModule = Module(
+      named: "main",
+      containing: [mainFile, structConstructor, classConstructor],
+      importing: [importedModule],
+      producing: .executable)
+
+    // MARK: - Define the test
+
+    // Define module ordering & what to compile
+    let modules = [importedModule, mainModule]
+
+    // Define what is expected
+    let whenAddOrRmFunc = ExpectedCompilations(
+      expected: [structExtension, classExtension, ])
+
+    let steps = [
+      Step(                    building: modules, .expecting(modules.allSourcesToCompile)),
+      Step(                    building: modules, .expecting(.none)),
+      Step(adding: "withFunc", building: modules, .expecting(whenAddOrRmFunc)),
+      Step(                    building: modules, .expecting(whenAddOrRmFunc)),
+      Step(adding: "withFunc", building: modules, .expecting(whenAddOrRmFunc)),
+    ]
+
+    // Do the test
+    try IncrementalTest.perform(steps)
+  }
+}

@@ -1,0 +1,37 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+#if os(Windows)
+
+import WinSDK
+
+internal var FILE_MAP_ALL_ACCESS: DWORD {
+  DWORD(STANDARD_RIGHTS_REQUIRED | SECTION_QUERY |
+        SECTION_MAP_WRITE | SECTION_MAP_READ | SECTION_MAP_EXECUTE |
+        SECTION_EXTEND_SIZE)
+}
+
+internal func CreateEvent(_ name: String, bManualReset: Bool = false,
+                          bInitialState: Bool = false) -> HANDLE? {
+  let hEvent: HANDLE = CreateEventA(LPSECURITY_ATTRIBUTES(bitPattern: 0),
+                                    bManualReset, bInitialState, name)
+  if hEvent == HANDLE(bitPattern: 0) {
+    print("CreateEvent failed \(GetLastError())")
+    return nil
+  }
+  return hEvent
+}
+
+#endif
