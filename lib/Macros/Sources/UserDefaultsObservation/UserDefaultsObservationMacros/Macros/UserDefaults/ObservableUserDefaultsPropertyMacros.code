@@ -1,0 +1,54 @@
+//
+//  File.swift
+//  
+//
+//  Created by Taylor Geisse on 6/22/23.
+//
+
+import SwiftSyntax
+import SwiftSyntaxMacros
+
+public struct ObservableUserDefaultsPropertyMacros: AccessorMacro {
+    public static func expansion(
+        of node: AttributeSyntax,
+        providingAccessorsOf declaration: some DeclSyntaxProtocol,
+        in context: some MacroExpansionContext
+    ) throws -> [AccessorDeclSyntax] {
+        guard let property = declaration.as(VariableDeclSyntax.self),
+              let binding = property.bindings.first,
+              let identifier = binding.pattern.as(IdentifierPatternSyntax.self),
+              binding.accessorBlock == nil,
+              let key = node.as(AttributeSyntax.self)?
+                            .arguments?.as(LabeledExprListSyntax.self)?.first?
+                            .expression.as(StringLiteralExprSyntax.self)?
+                            .segments.first?.as(StringSegmentSyntax.self)?.content
+        else { return [] }
+        
+        if "\(property.bindingSpecifier)".contains("var") == false {
+            throw ObservableUserDefaultsError.varValueRequired
+        }
+        
+        let getAccessor: AccessorDeclSyntax =
+            """
+            get {
+                access(keyPath: \\.\(identifier))
+                \(binding.asDefaultValue)
+                return UserDefaultsWrapper.getValue(\"\(key)\", defaultValue, _$userDefaultStore)
+            }
+            """
+        
+        let setAccessor: AccessorDeclSyntax =
+            """
+            set {
+                withMutation(keyPath: \\.\(identifier)) {
+                    UserDefaultsWrapper.setValue(\"\(key)\", newValue, _$userDefaultStore)
+                }
+            }
+            """
+        
+        return [
+            getAccessor,
+            setAccessor
+        ]
+    }
+}
