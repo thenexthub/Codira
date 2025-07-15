@@ -1,0 +1,31 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+#if !canImport(Darwin) || os(macOS)
+import NIOCore
+import NIOPosix
+import Foundation
+
+private let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+
+struct SystemCrashTests {
+    let testEBADFIsUnacceptable = CrashTest(
+        regex: "Precondition failed: unacceptable errno \(EBADF) Bad file descriptor in",
+        {
+            _ = try? NIOPipeBootstrap(group: group).takingOwnershipOfDescriptors(input: .max, output: .max - 1).wait()
+        }
+    )
+}
+#endif

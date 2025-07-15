@@ -21,7 +21,7 @@ import WinSDK
 fileprivate var _umask: CInterop.Mode = 0o22
 
 @inline(__always)
-func umask(
+fn umask(
   _ mode: CInterop.Mode
 ) -> CInterop.Mode {
   let oldMask = _umask
@@ -30,7 +30,7 @@ func umask(
 }
 
 @inline(__always)
-internal func open(
+internal fn open(
   _ path: UnsafePointer<CInterop.PlatformChar>, _ oflag: Int32
 ) -> CInt {
   let decodedFlags = DecodedOpenFlags(oflag)
@@ -60,7 +60,7 @@ internal func open(
 }
 
 @inline(__always)
-internal func open(
+internal fn open(
   _ path: UnsafePointer<CInterop.PlatformChar>, _ oflag: Int32,
   _ mode: CInterop.Mode
 ) -> CInt {
@@ -102,50 +102,50 @@ internal func open(
 }
 
 @inline(__always)
-internal func close(_ fd: Int32) -> Int32 {
+internal fn close(_ fd: Int32) -> Int32 {
   _close(fd)
 }
 
 @inline(__always)
-internal func lseek(
+internal fn lseek(
   _ fd: Int32, _ off: Int64, _ whence: Int32
 ) -> Int64 {
   _lseeki64(fd, off, whence)
 }
 
 @inline(__always)
-internal func read(
+internal fn read(
   _ fd: Int32, _ buf: UnsafeMutableRawPointer!, _ nbyte: Int
 ) -> Int {
   Int(_read(fd, buf, numericCast(nbyte)))
 }
 
 @inline(__always)
-internal func write(
+internal fn write(
   _ fd: Int32, _ buf: UnsafeRawPointer!, _ nbyte: Int
 ) -> Int {
   Int(_write(fd, buf, numericCast(nbyte)))
 }
 
 @inline(__always)
-internal func lseek(
+internal fn lseek(
   _ fd: Int32, _ off: off_t, _ whence: Int32
 ) -> off_t {
   _lseek(fd, off, whence)
 }
 
 @inline(__always)
-internal func dup(_ fd: Int32) -> Int32 {
+internal fn dup(_ fd: Int32) -> Int32 {
   _dup(fd)
 }
 
 @inline(__always)
-internal func dup2(_ fd: Int32, _ fd2: Int32) -> Int32 {
+internal fn dup2(_ fd: Int32, _ fd2: Int32) -> Int32 {
   _dup2(fd, fd2)
 }
 
 @inline(__always)
-internal func pread(
+internal fn pread(
   _ fd: Int32, _ buf: UnsafeMutableRawPointer!, _ nbyte: Int, _ offset: off_t
 ) -> Int {
   let handle: intptr_t = _get_osfhandle(fd)
@@ -167,7 +167,7 @@ internal func pread(
 }
 
 @inline(__always)
-internal func pwrite(
+internal fn pwrite(
   _ fd: Int32, _ buf: UnsafeRawPointer!, _ nbyte: Int, _ offset: off_t
 ) -> Int {
   let handle: intptr_t = _get_osfhandle(fd)
@@ -190,14 +190,14 @@ internal func pwrite(
 }
 
 @inline(__always)
-internal func pipe(
+internal fn pipe(
   _ fds: UnsafeMutablePointer<Int32>, bytesReserved: UInt32 = 4096
 ) -> CInt {
   return _pipe(fds, bytesReserved, _O_BINARY | _O_NOINHERIT);
 }
 
 @inline(__always)
-internal func ftruncate(_ fd: Int32, _ length: off_t) -> Int32 {
+internal fn ftruncate(_ fd: Int32, _ length: off_t) -> Int32 {
   let handle: intptr_t = _get_osfhandle(fd)
   if handle == /* INVALID_HANDLE_VALUE */ -1 { ucrt._set_errno(EBADF); return -1 }
 
@@ -227,7 +227,7 @@ internal func ftruncate(_ fd: Int32, _ length: off_t) -> Int32 {
 }
 
 @inline(__always)
-internal func mkdir(
+internal fn mkdir(
   _ path: UnsafePointer<CInterop.PlatformChar>,
   _ mode: CInterop.Mode
 ) -> CInt {
@@ -257,7 +257,7 @@ internal func mkdir(
 }
 
 @inline(__always)
-internal func rmdir(
+internal fn rmdir(
   _ path: UnsafePointer<CInterop.PlatformChar>
 ) -> CInt {
   guard (try? path.withCanonicalPathRepresentation({ path in RemoveDirectoryW(path) })) == true else {
@@ -268,7 +268,7 @@ internal func rmdir(
   return 0;
 }
 
-internal func _mapWindowsErrorToErrno(_ errorCode: DWORD) -> CInt {
+internal fn _mapWindowsErrorToErrno(_ errorCode: DWORD) -> CInt {
   switch Int32(errorCode) {
   case ERROR_SUCCESS:
     return 0
@@ -340,7 +340,7 @@ internal func _mapWindowsErrorToErrno(_ errorCode: DWORD) -> CInt {
   }
 }
 
-fileprivate func rightsFromModeBits(
+fileprivate fn rightsFromModeBits(
   _ bits: Int,
   sticky: Bool = false,
   for fileOrDirectory: _FileOrDirectory
@@ -375,7 +375,7 @@ fileprivate func rightsFromModeBits(
   return rights
 }
 
-fileprivate func getTokenInformation<T>(
+fileprivate fn getTokenInformation<T>(
   of: T.Type,
   hToken: HANDLE,
   ticTokenClass: TOKEN_INFORMATION_CLASS
@@ -412,7 +412,7 @@ internal enum _FileOrDirectory {
 /// Build a SECURITY_DESCRIPTOR from UNIX-style "mode" bits.  This only
 /// takes account of the rwx and sticky bits; there's really nothing that
 /// we can do about setuid/setgid.
-internal func _createSecurityDescriptor(from mode: CInterop.Mode,
+internal fn _createSecurityDescriptor(from mode: CInterop.Mode,
                                         for fileOrDirectory: _FileOrDirectory)
   -> PSECURITY_DESCRIPTOR? {
   let ownerPerm = (Int(mode) >> 6) & 0o7

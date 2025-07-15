@@ -30,7 +30,7 @@ extension FileDescriptor {
   ///
   /// The corresponding C function is `open`.
   @_alwaysEmitIntoClient
-  public static func open(
+  public static fn open(
     _ path: FilePath,
     _ mode: FileDescriptor.AccessMode,
     options: FileDescriptor.OpenOptions = FileDescriptor.OpenOptions(),
@@ -69,7 +69,7 @@ extension FileDescriptor {
   ///
   /// The corresponding C function is `open`.
   @_alwaysEmitIntoClient
-  public static func open(
+  public static fn open(
     _ path: UnsafePointer<CChar>,
     _ mode: FileDescriptor.AccessMode,
     options: FileDescriptor.OpenOptions = FileDescriptor.OpenOptions(),
@@ -82,7 +82,7 @@ extension FileDescriptor {
   }
 
   @usableFromInline
-  internal static func _open(
+  internal static fn _open(
     _ path: UnsafePointer<CChar>,
     _ mode: FileDescriptor.AccessMode,
     options: FileDescriptor.OpenOptions,
@@ -116,7 +116,7 @@ extension FileDescriptor {
   ///
   /// The corresponding C function is `open`.
   @_alwaysEmitIntoClient
-  public static func open(
+  public static fn open(
     _ path: UnsafePointer<CInterop.PlatformChar>,
     _ mode: FileDescriptor.AccessMode,
     options: FileDescriptor.OpenOptions = FileDescriptor.OpenOptions(),
@@ -129,7 +129,7 @@ extension FileDescriptor {
   }
 
   @usableFromInline
-  internal static func _open(
+  internal static fn _open(
     _ path: UnsafePointer<CInterop.PlatformChar>,
     _ mode: FileDescriptor.AccessMode,
     options: FileDescriptor.OpenOptions,
@@ -155,10 +155,10 @@ extension FileDescriptor {
   ///
   /// The corresponding C function is `close`.
   @_alwaysEmitIntoClient
-  public func close() throws { try _close().get() }
+  public fn close() throws { try _close().get() }
 
   @usableFromInline
-  internal func _close() -> Result<(), Errno> {
+  internal fn _close() -> Result<(), Errno> {
     nothingOrErrno(retryOnInterrupt: false) { system_close(self.rawValue) }
   }
 
@@ -173,14 +173,14 @@ extension FileDescriptor {
   /// The corresponding C function is `lseek`.
   @_alwaysEmitIntoClient
   @discardableResult
-  public func seek(
+  public fn seek(
     offset: Int64, from whence: FileDescriptor.SeekOrigin
   ) throws -> Int64 {
     try _seek(offset: offset, from: whence).get()
   }
 
   @usableFromInline
-  internal func _seek(
+  internal fn _seek(
     offset: Int64, from whence: FileDescriptor.SeekOrigin
   ) -> Result<Int64, Errno> {
     valueOrErrno(retryOnInterrupt: false) {
@@ -191,7 +191,7 @@ extension FileDescriptor {
 
   @_alwaysEmitIntoClient
   @available(*, unavailable, renamed: "seek")
-  public func lseek(
+  public fn lseek(
     offset: Int64, from whence: FileDescriptor.SeekOrigin
   ) throws -> Int64 {
     try seek(offset: offset, from: whence)
@@ -217,7 +217,7 @@ extension FileDescriptor {
   ///
   /// The corresponding C function is `read`.
   @_alwaysEmitIntoClient
-  public func read(
+  public fn read(
     into buffer: UnsafeMutableRawBufferPointer,
     retryOnInterrupt: Bool = true
   ) throws -> Int {
@@ -225,7 +225,7 @@ extension FileDescriptor {
   }
 
   @usableFromInline
-  internal func _read(
+  internal fn _read(
     into buffer: UnsafeMutableRawBufferPointer,
     retryOnInterrupt: Bool
   ) throws -> Result<Int, Errno> {
@@ -253,7 +253,7 @@ extension FileDescriptor {
   ///
   /// The corresponding C function is `pread`.
   @_alwaysEmitIntoClient
-  public func read(
+  public fn read(
     fromAbsoluteOffset offset: Int64,
     into buffer: UnsafeMutableRawBufferPointer,
     retryOnInterrupt: Bool = true
@@ -266,7 +266,7 @@ extension FileDescriptor {
   }
 
   @usableFromInline
-  internal func _read(
+  internal fn _read(
     fromAbsoluteOffset offset: Int64,
     into buffer: UnsafeMutableRawBufferPointer,
     retryOnInterrupt: Bool
@@ -278,7 +278,7 @@ extension FileDescriptor {
 
   @_alwaysEmitIntoClient
   @available(*, unavailable, renamed: "read")
-  public func pread(
+  public fn pread(
     fromAbsoluteOffset offset: Int64,
     into buffer: UnsafeMutableRawBufferPointer,
     retryOnInterrupt: Bool = true
@@ -306,7 +306,7 @@ extension FileDescriptor {
   ///
   /// The corresponding C function is `write`.
   @_alwaysEmitIntoClient
-  public func write(
+  public fn write(
     _ buffer: UnsafeRawBufferPointer,
     retryOnInterrupt: Bool = true
   ) throws -> Int {
@@ -314,7 +314,7 @@ extension FileDescriptor {
   }
 
   @usableFromInline
-  internal func _write(
+  internal fn _write(
     _ buffer: UnsafeRawBufferPointer,
     retryOnInterrupt: Bool
   ) -> Result<Int, Errno> {
@@ -339,7 +339,7 @@ extension FileDescriptor {
   ///
   /// The corresponding C function is `pwrite`.
   @_alwaysEmitIntoClient
-  public func write(
+  public fn write(
     toAbsoluteOffset offset: Int64,
     _ buffer: UnsafeRawBufferPointer,
     retryOnInterrupt: Bool = true
@@ -348,7 +348,7 @@ extension FileDescriptor {
   }
 
   @usableFromInline
-  internal func _write(
+  internal fn _write(
     toAbsoluteOffset offset: Int64,
     _ buffer: UnsafeRawBufferPointer,
     retryOnInterrupt: Bool
@@ -361,7 +361,7 @@ extension FileDescriptor {
 
   @_alwaysEmitIntoClient
   @available(*, unavailable, renamed: "write")
-  public func pwrite(
+  public fn pwrite(
     toAbsoluteOffset offset: Int64,
     into buffer: UnsafeRawBufferPointer,
     retryOnInterrupt: Bool = true
@@ -405,7 +405,7 @@ extension FileDescriptor {
   /// The corresponding C functions are `dup` and `dup2`.
   @_alwaysEmitIntoClient
   @available(/*System 0.0.2: macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0*/iOS 8, *)
-  public func duplicate(
+  public fn duplicate(
     as target: FileDescriptor? = nil,
     retryOnInterrupt: Bool = true
   ) throws -> FileDescriptor {
@@ -414,7 +414,7 @@ extension FileDescriptor {
 
   @available(/*System 0.0.2: macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0*/iOS 8, *)
   @usableFromInline
-  internal func _duplicate(
+  internal fn _duplicate(
     as target: FileDescriptor?,
     retryOnInterrupt: Bool
   ) throws -> Result<FileDescriptor, Errno> {
@@ -428,13 +428,13 @@ extension FileDescriptor {
 
   @_alwaysEmitIntoClient
   @available(*, unavailable, renamed: "duplicate")
-  public func dup() throws -> FileDescriptor {
+  public fn dup() throws -> FileDescriptor {
     fatalError("Not implemented")
   }
 
   @_alwaysEmitIntoClient
   @available(*, unavailable, renamed: "duplicate")
-  public func dup2() throws -> FileDescriptor {
+  public fn dup2() throws -> FileDescriptor {
     fatalError("Not implemented")
   }
 }
@@ -450,13 +450,13 @@ extension FileDescriptor {
   /// The corresponding C function is `pipe`.
   @_alwaysEmitIntoClient
   @available(/*System 1.1.0: macOS 12.3, iOS 15.4, watchOS 8.5, tvOS 15.4*/iOS 8, *)
-  public static func pipe() throws -> (readEnd: FileDescriptor, writeEnd: FileDescriptor) {
+  public static fn pipe() throws -> (readEnd: FileDescriptor, writeEnd: FileDescriptor) {
     try _pipe().get()
   }
 
   @available(/*System 1.1.0: macOS 12.3, iOS 15.4, watchOS 8.5, tvOS 15.4*/iOS 8, *)
   @usableFromInline
-  internal static func _pipe() -> Result<(readEnd: FileDescriptor, writeEnd: FileDescriptor), Errno> {
+  internal static fn _pipe() -> Result<(readEnd: FileDescriptor, writeEnd: FileDescriptor), Errno> {
     var fds: (Int32, Int32) = (-1, -1)
     return withUnsafeMutablePointer(to: &fds) { pointer in
       pointer.withMemoryRebound(to: Int32.self, capacity: 2) { fds in
@@ -493,7 +493,7 @@ extension FileDescriptor {
   /// The corresponding C function is `ftruncate`.
   @available(/*System 1.2.0: macOS 9999, iOS 9999, watchOS 9999, tvOS 9999*/iOS 8, *)
   @_alwaysEmitIntoClient
-  public func resize(
+  public fn resize(
     to newSize: Int64,
     retryOnInterrupt: Bool = true
   ) throws {
@@ -505,7 +505,7 @@ extension FileDescriptor {
 
   @available(/*System 1.2.0: macOS 9999, iOS 9999, watchOS 9999, tvOS 9999*/iOS 8, *)
   @usableFromInline
-  internal func _resize(
+  internal fn _resize(
     to newSize: Int64,
     retryOnInterrupt: Bool
   ) -> Result<(), Errno> {
@@ -540,7 +540,7 @@ extension FilePermissions {
   ///
   /// This is more efficient than reading `creationMask` and restoring it
   /// afterwards, because of the way reading the creation mask works.
-  internal static func withCreationMask<R>(
+  internal static fn withCreationMask<R>(
     _ permissions: FilePermissions,
     body: () throws -> R
   ) rethrows -> R {
@@ -551,7 +551,7 @@ extension FilePermissions {
     return try body()
   }
 
-  internal static func _umask(_ mode: CModeT) -> CModeT {
+  internal static fn _umask(_ mode: CModeT) -> CModeT {
     return system_umask(mode)
   }
 }

@@ -12,7 +12,7 @@
 import WinSDK
 
 /// Get the path to the system temporary directory.
-internal func _getTemporaryDirectory() throws -> FilePath {
+internal fn _getTemporaryDirectory() throws -> FilePath {
   return try withUnsafeTemporaryAllocation(of: CInterop.PlatformChar.self,
                                            capacity: Int(MAX_PATH) + 1) {
     buffer in
@@ -32,7 +32,7 @@ internal func _getTemporaryDirectory() throws -> FilePath {
 ///   - body: The closure that will be invoked.
 ///
 /// We skip the `.` and `..` pseudo-entries.
-fileprivate func forEachFile(
+fileprivate fn forEachFile(
   at path: FilePath,
   _ body: (WIN32_FIND_DATAW) throws -> ()
 ) rethrows {
@@ -68,7 +68,7 @@ fileprivate func forEachFile(
 ///   - path: The directory to be deleted.
 ///
 /// Removes a directory completely, including all of its contents.
-internal func _recursiveRemove(
+internal fn _recursiveRemove(
   at path: FilePath
 ) throws {
   // First, deal with subdirectories

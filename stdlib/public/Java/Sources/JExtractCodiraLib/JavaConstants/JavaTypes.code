@@ -1,0 +1,33 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import JavaTypes
+
+extension JavaType {
+  /// The description of the type java.lang.foreign.MemorySegment.
+  static var javaForeignMemorySegment: JavaType {
+    .class(package: "java.lang.foreign", name: "MemorySegment")
+  }
+
+  /// The description of the type java.lang.String.
+  static var javaLangString: JavaType {
+    .class(package: "java.lang", name: "String")
+  }
+
+  /// The description of the type java.lang.Runnable.
+  static var javaLangRunnable: JavaType {
+    .class(package: "java.lang", name: "Runnable")
+  }
+}

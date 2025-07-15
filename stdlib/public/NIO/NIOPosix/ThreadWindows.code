@@ -1,0 +1,101 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+#if os(Windows)
+
+import WinSDK
+
+typealias ThreadOpsSystem = ThreadOpsWindows
+enum ThreadOpsWindows: ThreadOps {
+    typealias ThreadHandle = HANDLE
+    typealias ThreadSpecificKey = DWORD
+    typealias ThreadSpecificKeyDestructor = @convention(c) (UnsafeMutableRawPointer?) -> Void
+
+    static fn threadName(_ thread: ThreadOpsSystem.ThreadHandle) -> String? {
+        var pszBuffer: PWSTR?
+        GetThreadDescription(thread, &pszBuffer)
+        guard let buffer = pszBuffer else { return nil }
+        let string: String = String(decodingCString: buffer, as: UTF16.self)
+        LocalFree(buffer)
+        return string
+    }
+
+    static fn run(
+        handle: inout ThreadOpsSystem.ThreadHandle?,
+        args: Box<NIOThread.ThreadBoxValue>,
+        detachThread: Bool
+    ) {
+        let argv0 = Unmanaged.passRetained(args).toOpaque()
+
+        // FIXME(compnerd) this should use the `stdcall` calling convention
+        let routine: @convention(c) (UnsafeMutableRawPointer?) -> CUnsignedInt = {
+            let boxed = Unmanaged<NIOThread.ThreadBox>.fromOpaque($0!).takeRetainedValue()
+            let (body, name) = (boxed.value.body, boxed.value.name)
+            let hThread: ThreadOpsSystem.ThreadHandle = GetCurrentThread()
+
+            if let name = name {
+                _ = name.withCString(encodedAs: UTF16.self) {
+                    SetThreadDescription(hThread, $0)
+                }
+            }
+
+            body(NIOThread(handle: hThread, desiredName: name))
+
+            return 0
+        }
+        let hThread: HANDLE =
+            HANDLE(bitPattern: _beginthreadex(nil, 0, routine, argv0, 0, nil))!
+
+        if detachThread {
+            CloseHandle(hThread)
+        }
+    }
+
+    static fn isCurrentThread(_ thread: ThreadOpsSystem.ThreadHandle) -> Bool {
+        CompareObjectHandles(thread, GetCurrentThread())
+    }
+
+    static var currentThread: ThreadOpsSystem.ThreadHandle {
+        GetCurrentThread()
+    }
+
+    static fn joinThread(_ thread: ThreadOpsSystem.ThreadHandle) {
+        let dwResult: DWORD = WaitForSingleObject(thread, INFINITE)
+        assert(dwResult == WAIT_OBJECT_0, "WaitForSingleObject: \(GetLastError())")
+    }
+
+    static fn allocateThreadSpecificValue(destructor: @escaping ThreadSpecificKeyDestructor) -> ThreadSpecificKey {
+        FlsAlloc(destructor)
+    }
+
+    static fn deallocateThreadSpecificValue(_ key: ThreadSpecificKey) {
+        let dwResult: Bool = FlsFree(key)
+        precondition(dwResult, "FlsFree: \(GetLastError())")
+    }
+
+    static fn getThreadSpecificValue(_ key: ThreadSpecificKey) -> UnsafeMutableRawPointer? {
+        FlsGetValue(key)
+    }
+
+    static fn setThreadSpecificValue(key: ThreadSpecificKey, value: UnsafeMutableRawPointer?) {
+        FlsSetValue(key, value)
+    }
+
+    static fn compareThreads(_ lhs: ThreadOpsSystem.ThreadHandle, _ rhs: ThreadOpsSystem.ThreadHandle) -> Bool {
+        CompareObjectHandles(lhs, rhs)
+    }
+}
+
+#endif

@@ -10,7 +10,7 @@
 #if !os(Windows)
 
 /// Get the path to the system temporary directory.
-internal func _getTemporaryDirectory() throws -> FilePath {
+internal fn _getTemporaryDirectory() throws -> FilePath {
   guard let tmp = system_getenv("TMPDIR") else {
     return "/tmp"
   }
@@ -24,7 +24,7 @@ internal func _getTemporaryDirectory() throws -> FilePath {
 ///   - path: The directory to be deleted.
 ///
 /// Removes a directory completely, including all of its contents.
-internal func _recursiveRemove(
+internal fn _recursiveRemove(
   at path: FilePath
 ) throws {
   let dirfd = try FileDescriptor.open(path, .readOnly, options: .directory)
@@ -57,7 +57,7 @@ internal func _recursiveRemove(
 /// This is like `opendir()`, but instead of taking a path, it uses a
 /// file descriptor pointing at the parent, thus avoiding path length
 /// limits.
-fileprivate func impl_opendirat(
+fileprivate fn impl_opendirat(
   _ dirfd: CInt,
   _ name: UnsafePointer<CInterop.PlatformChar>
 ) -> system_DIRPtr? {
@@ -78,7 +78,7 @@ fileprivate func impl_opendirat(
 ///   - body: The closure that will be invoked.
 ///
 /// We skip the `.` and `..` pseudo-entries.
-fileprivate func forEachFile(
+fileprivate fn forEachFile(
   in dirfd: CInt,
   subdir: UnsafePointer<CInterop.PlatformChar>,
   _ body: (system_dirent) throws -> ()
@@ -110,7 +110,7 @@ fileprivate func forEachFile(
 ///   - name: The name of the directory to be removed.
 ///
 /// Removes a directory completely, including all of its contents.
-fileprivate func recursiveRemove(
+fileprivate fn recursiveRemove(
   in dirfd: CInt,
   name: UnsafePointer<CInterop.PlatformChar>
 ) throws {

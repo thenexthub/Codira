@@ -35,7 +35,7 @@ extension _RawBuffer {
     _storage?.header ?? 0 // Note: not capacity!
   }
 
-  internal mutating func ensureUnique() {
+  internal mutating fn ensureUnique() {
     guard _storage != nil else { return }
     let unique = isKnownUniquelyReferenced(&_storage)
     if !unique {
@@ -43,19 +43,19 @@ extension _RawBuffer {
     }
   }
 
-  internal func _grow(desired: Int) -> Int {
+  internal fn _grow(desired: Int) -> Int {
     let next = Int(1.75 * Double(self.capacity))
     return Swift.max(next, desired)
   }
 
-  internal mutating func ensureUnique(capacity: Int) {
+  internal mutating fn ensureUnique(capacity: Int) {
     let unique = isKnownUniquelyReferenced(&_storage)
     if !unique || self.capacity < capacity {
       _storage = _copy(capacity: _grow(desired: capacity))
     }
   }
 
-  internal func withUnsafeBytes<R>(
+  internal fn withUnsafeBytes<R>(
     _ body: (UnsafeRawBufferPointer) throws -> R
   ) rethrows -> R {
     guard let storage = _storage else {
@@ -67,7 +67,7 @@ extension _RawBuffer {
     }
   }
 
-  internal mutating func withUnsafeMutableBytes<R>(
+  internal mutating fn withUnsafeMutableBytes<R>(
     _ body: (UnsafeMutableRawBufferPointer) throws -> R
   ) rethrows -> R {
     guard _storage != nil else {
@@ -83,7 +83,7 @@ extension _RawBuffer {
 
 extension _RawBuffer {
   internal class Storage: ManagedBuffer<Int, UInt8> {
-    internal static func create(minimumCapacity: Int) -> Storage {
+    internal static fn create(minimumCapacity: Int) -> Storage {
       Storage.create(
         minimumCapacity: minimumCapacity,
         makingHeaderWith: {
@@ -97,7 +97,7 @@ extension _RawBuffer {
     }
   }
 
-  internal func _copy(capacity: Int) -> Storage {
+  internal fn _copy(capacity: Int) -> Storage {
     let copy = Storage.create(minimumCapacity: capacity)
     copy.withUnsafeMutablePointers { dstlen, dst in
       self.withUnsafeBytes { src in

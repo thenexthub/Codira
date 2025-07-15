@@ -1,0 +1,76 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import NIOCore
+import NIOPosix
+
+private let group = MultiThreadedEventLoopGroup(numberOfThreads: 2)
+
+struct LoopBoundTests {
+    #if !canImport(Darwin) || os(macOS)
+    let testInitChecksEventLoop = CrashTest(
+        regex: "NIOCore/NIOLoopBound.swift:[0-9]+: Precondition failed"
+    ) {
+        _ = NIOLoopBound(1, eventLoop: group.any())  // BOOM
+    }
+
+    let testInitOfBoxChecksEventLoop = CrashTest(
+        regex: "NIOCore/NIOLoopBound.swift:[0-9]+: Precondition failed"
+    ) {
+        _ = NIOLoopBoundBox(1, eventLoop: group.any())  // BOOM
+    }
+
+    let testGetChecksEventLoop = CrashTest(
+        regex: "NIOCore/NIOLoopBound.swift:[0-9]+: Precondition failed"
+    ) {
+        let loop = group.any()
+        let sendable = try? loop.submit {
+            NIOLoopBound(1, eventLoop: loop)
+        }.wait()
+        _ = sendable?.value  // BOOM
+    }
+
+    let testGetOfBoxChecksEventLoop = CrashTest(
+        regex: "NIOCore/NIOLoopBound.swift:[0-9]+: Precondition failed"
+    ) {
+        let loop = group.any()
+        let sendable = try? loop.submit {
+            NIOLoopBoundBox(1, eventLoop: loop)
+        }.wait()
+        _ = sendable?.value  // BOOM
+    }
+
+    let testSetChecksEventLoop = CrashTest(
+        regex: "NIOCore/NIOLoopBound.swift:[0-9]+: Precondition failed"
+    ) {
+        let loop = group.any()
+        let sendable = try? loop.submit {
+            NIOLoopBound(1, eventLoop: loop)
+        }.wait()
+        var sendableVar = sendable
+        sendableVar?.value = 2
+    }
+
+    let testSetOfBoxChecksEventLoop = CrashTest(
+        regex: "NIOCore/NIOLoopBound.swift:[0-9]+: Precondition failed"
+    ) {
+        let loop = group.any()
+        let sendable = try? loop.submit {
+            NIOLoopBoundBox(1, eventLoop: loop)
+        }.wait()
+        sendable?.value = 2
+    }
+    #endif
+}

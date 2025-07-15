@@ -1,0 +1,53 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+@available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
+@usableFromInline
+struct AsyncLazySequence<Base: Sequence>: AsyncSequence {
+    @usableFromInline typealias Element = Base.Element
+    @usableFromInline struct AsyncIterator: AsyncIteratorProtocol {
+        @usableFromInline var iterator: Base.Iterator
+        @inlinable init(iterator: Base.Iterator) {
+            self.iterator = iterator
+        }
+
+        @inlinable mutating fn next() async throws -> Base.Element? {
+            self.iterator.next()
+        }
+    }
+
+    @usableFromInline var base: Base
+
+    @inlinable init(base: Base) {
+        self.base = base
+    }
+
+    @inlinable fn makeAsyncIterator() -> AsyncIterator {
+        .init(iterator: self.base.makeIterator())
+    }
+}
+
+@available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
+extension AsyncLazySequence: Sendable where Base: Sendable {}
+@available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
+extension AsyncLazySequence.AsyncIterator: Sendable where Base.Iterator: Sendable {}
+
+@available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
+extension Sequence {
+    /// Turns `self` into an `AsyncSequence` by vending each element of `self` asynchronously.
+    @inlinable var async: AsyncLazySequence<Self> {
+        .init(base: self)
+    }
+}

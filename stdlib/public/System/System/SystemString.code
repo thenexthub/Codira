@@ -24,7 +24,7 @@ internal struct SystemChar:
 
   internal init(_ rawValue: RawValue) { self.init(rawValue: rawValue) }
 
-  static func < (lhs: SystemChar, rhs: SystemChar) -> Bool {
+  static fn < (lhs: SystemChar, rhs: SystemChar) -> Bool {
     lhs.rawValue < rhs.rawValue
   }
 }
@@ -102,7 +102,7 @@ extension SystemString {
 }
 
 extension SystemString {
-  fileprivate func _invariantsSatisfied() -> Bool {
+  fileprivate fn _invariantsSatisfied() -> Bool {
     guard !nullTerminatedStorage.isEmpty else { return false }
     guard nullTerminatedStorage.last! == .null else { return false }
     guard nullTerminatedStorage.firstIndex(of: .null) == length else {
@@ -111,7 +111,7 @@ extension SystemString {
     return true
   }
   
-  fileprivate func _invariantCheck() {
+  fileprivate fn _invariantCheck() {
     #if DEBUG
     precondition(_invariantsSatisfied())
     #endif // DEBUG
@@ -144,19 +144,19 @@ extension SystemString: RandomAccessCollection, MutableCollection {
   }
 }
 extension SystemString: RangeReplaceableCollection {
-  internal mutating func replaceSubrange<C: Collection>(
+  internal mutating fn replaceSubrange<C: Collection>(
     _ subrange: Range<Index>, with newElements: C
   ) where C.Element == SystemChar {
     defer { _invariantCheck() }
     nullTerminatedStorage.replaceSubrange(subrange, with: newElements)
   }
 
-  internal mutating func reserveCapacity(_ n: Int) {
+  internal mutating fn reserveCapacity(_ n: Int) {
     defer { _invariantCheck() }
     nullTerminatedStorage.reserveCapacity(1 + n)
   }
 
-  internal func withContiguousStorageIfAvailable<R>(
+  internal fn withContiguousStorageIfAvailable<R>(
     _ body: (UnsafeBufferPointer<SystemChar>) throws -> R
   ) rethrows -> R? {
     // Do not include the null terminator, it is outside the Collection
@@ -165,7 +165,7 @@ extension SystemString: RangeReplaceableCollection {
     }
   }
 
-  internal mutating func withContiguousMutableStorageIfAvailable<R>(
+  internal mutating fn withContiguousMutableStorageIfAvailable<R>(
     _ body: (inout UnsafeMutableBufferPointer<SystemChar>) throws -> R
   ) rethrows -> R? {
     defer { _invariantCheck() }
@@ -203,14 +203,14 @@ extension SystemString: Hashable, Codable {
 
 extension SystemString {
 
-  internal func withNullTerminatedSystemChars<T>(
+  internal fn withNullTerminatedSystemChars<T>(
     _ f: (UnsafeBufferPointer<SystemChar>) throws -> T
   ) rethrows -> T {
     try nullTerminatedStorage.withUnsafeBufferPointer(f)
   }
 
   // withCodeUnits does not include the null terminator
-  internal func withCodeUnits<T>(
+  internal fn withCodeUnits<T>(
     _ f: (UnsafeBufferPointer<CInterop.PlatformUnicodeEncoding.CodeUnit>) throws -> T
   ) rethrows -> T {
     try withNullTerminatedSystemChars {
@@ -223,7 +223,7 @@ extension SystemString {
 }
 
 extension Slice where Base == SystemString {
-  internal func withCodeUnits<T>(
+  internal fn withCodeUnits<T>(
     _ f: (UnsafeBufferPointer<CInterop.PlatformUnicodeEncoding.CodeUnit>) throws -> T
   ) rethrows -> T {
     try base.withCodeUnits {
@@ -237,7 +237,7 @@ extension Slice where Base == SystemString {
     }
   }
 
-  internal func withPlatformString<T>(
+  internal fn withPlatformString<T>(
     _ f: (UnsafePointer<CInterop.PlatformChar>) throws -> T
   ) rethrows -> T {
     // FIXME: avoid allocation if we're at the end
@@ -316,7 +316,7 @@ extension SystemString {
   /// The pointer passed as an argument to `body` is valid
   /// only during the execution of this method.
   /// Don't try to store the pointer for later use.
-  internal func withPlatformString<T>(
+  internal fn withPlatformString<T>(
     _ f: (UnsafePointer<CInterop.PlatformChar>) throws -> T
   ) rethrows -> T {
     try withNullTerminatedSystemChars { chars in

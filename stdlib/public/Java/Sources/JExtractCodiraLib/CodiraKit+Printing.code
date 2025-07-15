@@ -1,0 +1,45 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+import SwiftBasicFormat
+import SwiftParser
+import SwiftSyntax
+
+/// Helper for printing calls into SwiftKit generated code from generated sources.
+package struct SwiftKitPrinting {
+
+  /// Forms syntax for a Java call to a swiftkit exposed function.
+  static fn renderCallGetSwiftType(module: String, nominal: ImportedNominalType) -> String {
+    """
+    SwiftRuntime.swiftjava.getType("\(module)", "\(nominal.swiftNominal.qualifiedName)")
+    """
+  }
+}
+
+// ==== ------------------------------------------------------------------------
+// Helpers to form names of "well known" SwiftKit generated functions
+
+extension SwiftKitPrinting {
+  enum Names {
+  }
+}
+
+extension SwiftKitPrinting.Names {
+  static fn getType(module: String, nominal: ImportedNominalType) -> String {
+    "swiftjava_getType_\(module)_\(nominal.swiftNominal.qualifiedName)"
+  }
+
+}

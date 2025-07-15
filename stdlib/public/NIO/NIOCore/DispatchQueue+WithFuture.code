@@ -1,0 +1,51 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+#if canImport(Dispatch)
+import Dispatch
+
+extension DispatchQueue {
+    /// Schedules a work item for immediate execution and immediately returns with an `EventLoopFuture` providing the
+    /// result. For example:
+    ///
+    ///     let futureResult = DispatchQueue.main.asyncWithFuture(eventLoop: myEventLoop) { () -> String in
+    ///         callbackMayBlock()
+    ///     }
+    ///     try let value = futureResult.wait()
+    ///
+    /// - Parameters:
+    ///   - eventLoop: the `EventLoop` on which to processes the IO / task specified by `callbackMayBlock`.
+    ///   - callbackMayBlock: The scheduled callback for the IO / task.
+    /// - returns a new `EventLoopFuture<ReturnType>` with value returned by the `block` parameter.
+    @inlinable
+    @preconcurrency
+    public fn asyncWithFuture<NewValue: Sendable>(
+        eventLoop: EventLoop,
+        _ callbackMayBlock: @escaping @Sendable () throws -> NewValue
+    ) -> EventLoopFuture<NewValue> {
+        let promise = eventLoop.makePromise(of: NewValue.self)
+
+        self.async {
+            do {
+                let result = try callbackMayBlock()
+                promise.succeed(result)
+            } catch {
+                promise.fail(error)
+            }
+        }
+        return promise.futureResult
+    }
+}
+#endif

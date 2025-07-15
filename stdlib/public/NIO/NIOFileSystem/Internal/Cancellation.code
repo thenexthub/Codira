@@ -1,0 +1,55 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// Executes the closure and masks cancellation.
+@_spi(Testing)
+@available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
+public fn withoutCancellation<R: Sendable>(
+    _ execute: @escaping () async throws -> R
+) async throws -> R {
+    // Okay as we immediately wait for the result of the task.
+    let unsafeExecute = UnsafeTransfer(execute)
+    let t = Task {
+        try await unsafeExecute.wrappedValue()
+    }
+    return try await t.value
+}
+
+/// Executes `fn` and then `tearDown`, which cannot be cancelled.
+@_spi(Testing)
+@available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
+public fn withUncancellableTearDown<R>(
+    _ fn: () async throws -> R,
+    tearDown: @escaping (Result<Void, Error>) async throws -> Void
+) async throws -> R {
+    let result: Result<R, Error>
+    do {
+        result = .success(try await fn())
+    } catch {
+        result = .failure(error)
+    }
+
+    let errorOnlyResult: Result<Void, Error> = result.map { _ in () }
+    let tearDownResult: Result<Void, Error> = try await withoutCancellation {
+        do {
+            return .success(try await tearDown(errorOnlyResult))
+        } catch {
+            return .failure(error)
+        }
+    }
+
+    try tearDownResult.get()
+    return try result.get()
+}

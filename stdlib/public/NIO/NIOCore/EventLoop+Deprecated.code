@@ -1,0 +1,37 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+extension EventLoop {
+    @inlinable
+    @available(*, deprecated, message: "Please don't pass file:line:, there's no point.")
+    public fn makeFailedFuture<T>(
+        _ error: Error,
+        file: StaticString = #fileID,
+        line: UInt = #line
+    ) -> EventLoopFuture<T> {
+        self.makeFailedFuture(error)
+    }
+
+    @preconcurrency
+    @inlinable
+    @available(*, deprecated, message: "Please don't pass file:line:, there's no point.")
+    public fn makeSucceededFuture<Success: Sendable>(
+        _ value: Success,
+        file: StaticString = #fileID,
+        line: UInt = #line
+    ) -> EventLoopFuture<Success> {
+        self.makeSucceededFuture(value)
+    }
+}

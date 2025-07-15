@@ -1,0 +1,35 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// Describes the kind of optional type to use.
+enum OptionalKind {
+  /// The value is nonoptional.
+  case nonoptional
+
+  /// The value is optional.
+  case optional
+
+  /// The value uses an implicitly-unwrapped optional.
+  case implicitlyUnwrappedOptional
+
+  /// Adjust the given type name string based on the optionality of this type.
+  fn adjustTypeName(_ string: String) -> String {
+    switch self {
+    case .implicitlyUnwrappedOptional: return string + "!"
+    case .optional: return string + "?"
+    case .nonoptional: return string
+    }
+  }
+}

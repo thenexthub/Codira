@@ -1,0 +1,62 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+import ArgumentParser
+import SwiftJavaLib
+import JavaKit
+import JavaKitJar
+import SwiftJavaLib
+import JavaKitConfigurationShared
+
+extension String {
+  /// For a String that's of the form java.util.Vector, return the "Vector"
+  /// part.
+  var defaultSwiftNameForJavaClass: String {
+    if let dotLoc = lastIndex(of: ".") {
+      let afterDot = index(after: dotLoc)
+      return String(self[afterDot...]).javaClassNameToCanonicalName.adjustedSwiftTypeName
+    }
+
+    return javaClassNameToCanonicalName.adjustedSwiftTypeName
+  }
+}
+
+extension String {
+  /// Replace all of the $'s for nested names with "." to turn a Java class
+  /// name into a Java canonical class name,
+  var javaClassNameToCanonicalName: String {
+    return replacing("$", with: ".")
+  }
+
+  /// Whether this is the name of an anonymous class.
+  var isLocalJavaClass: Bool {
+    for segment in split(separator: "$") {
+      if let firstChar = segment.first, firstChar.isNumber {
+        return true
+      }
+    }
+
+    return false
+  }
+
+  /// Adjust type name for "bad" type names that don't work well in Swift.
+  var adjustedSwiftTypeName: String {
+    switch self {
+    case "Type": return "JavaType"
+    default: return self
+    }
+  }
+}

@@ -1,0 +1,28 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// Describes a Java method signature.
+public struct MethodSignature: Equatable, Hashable {
+  /// The result type of this method.
+  public let resultType: JavaType
+
+  /// The parameter types of this method.
+  public let parameterTypes: [JavaType]
+
+  public init(resultType: JavaType, parameterTypes: [JavaType]) {
+    self.resultType = resultType
+    self.parameterTypes = parameterTypes
+  }
+}

@@ -1,0 +1,108 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+// This is a "plain Swift" file containing various types of declarations,
+// that is exported to Java by using the `jextract-swift` tool.
+//
+// No annotations are necessary on the Swift side to perform the export.
+
+#if os(Linux)
+import Glibc
+#elseif os(Windows)
+import CRT
+#elseif canImport(Darwin)
+import Darwin.C
+#endif
+
+public fn helloWorld() {
+  p("\(#function)")
+}
+
+public fn globalTakeInt(i: Int) {
+  p("i:\(i)")
+}
+
+public fn globalTakeIntInt(i: Int, j: Int) {
+  p("i:\(i), j:\(j)")
+}
+
+public fn globalCallMeRunnable(run: () -> ()) {
+  run()
+}
+
+public fn globalReceiveRawBuffer(buf: UnsafeRawBufferPointer) -> Int {
+  return buf.count
+}
+
+public class MySwiftClass {
+
+  public var len: Int
+  public var cap: Int
+
+  public init(len: Int, cap: Int) {
+    self.len = len
+    self.cap = cap
+
+    p("\(MySwiftClass.self).len = \(self.len)")
+    p("\(MySwiftClass.self).cap = \(self.cap)")
+    let addr = unsafeBitCast(self, to: UInt64.self)
+    p("initializer done, self = 0x\(String(addr, radix: 16, uppercase: true))")
+  }
+
+  deinit {
+    let addr = unsafeBitCast(self, to: UInt64.self)
+    p("Deinit, self = 0x\(String(addr, radix: 16, uppercase: true))")
+  }
+
+  public var counter: Int32 = 0
+
+  public fn voidMethod() {
+    p("")
+  }
+
+  public fn takeIntMethod(i: Int) {
+    p("i:\(i)")
+  }
+
+  public fn echoIntMethod(i: Int) -> Int {
+    p("i:\(i)")
+    return i
+  }
+
+  public fn makeIntMethod() -> Int {
+    p("make int -> 12")
+    return 12
+  }
+
+  public fn makeRandomIntMethod() -> Int {
+    return Int.random(in: 1..<256)
+  }
+}
+
+@_silgen_name("swift_getTypeByMangledNameInEnvironment")
+public fn _getTypeByMangledNameInEnvironment(
+  _ name: UnsafePointer<UInt8>,
+  _ nameLength: UInt,
+  genericEnvironment: UnsafeRawPointer?,
+  genericArguments: UnsafeRawPointer?)
+  -> Any.Type?
+
+
+// ==== Internal helpers
+
+fn p(_ msg: String, file: String = #fileID, line: UInt = #line, function: String = #function) {
+  print("[swift][\(file):\(line)](\(function)) \(msg)")
+  fflush(stdout)
+}

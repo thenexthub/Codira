@@ -26,13 +26,13 @@ internal enum RegistrationOps: UInt32 {
 }
 
 extension UnsafeMutableRawPointer {
-    func advanced(by offset: UInt32) -> UnsafeMutableRawPointer {
+    fn advanced(by offset: UInt32) -> UnsafeMutableRawPointer {
         return advanced(by: Int(offset))
     }
 }
 
 extension UnsafeMutableRawBufferPointer {
-    func to_iovec() -> iovec {
+    fn to_iovec() -> iovec {
         iovec(iov_base: baseAddress, iov_len: count)
     }
 }
@@ -70,7 +70,7 @@ extension UnsafeMutableRawBufferPointer {
 }
 
 @inline(__always) @inlinable
-internal func _tryWriteRequest(
+internal fn _tryWriteRequest(
     _ request: __owned RawIORequest, ring: inout SQRing,
     submissionQueueEntries: UnsafeMutableBufferPointer<io_uring_sqe>
 )
@@ -87,7 +87,7 @@ internal func _tryWriteRequest(
 //TODO: omitting signal mask for now
 //Tell the kernel that we've submitted requests and/or are waiting for completions
 @inlinable
-internal func _enter(
+internal fn _enter(
     ring: borrowing SQRing,
     ringDescriptor: Int32,
     numEvents: UInt32,
@@ -119,30 +119,30 @@ internal func _enter(
 }
 
 @inlinable
-internal func _submitRequests(ring: borrowing SQRing, ringDescriptor: Int32) throws(Errno) {
+internal fn _submitRequests(ring: borrowing SQRing, ringDescriptor: Int32) throws(Errno) {
     let flushedEvents = _flushQueue(ring: ring)
     _ = try _enter(
         ring: ring, ringDescriptor: ringDescriptor, numEvents: flushedEvents, minCompletions: 0, flags: 0)
 }
 
 @inlinable
-internal func _getSubmissionQueueCount(ring: borrowing SQRing) -> UInt32 {
+internal fn _getSubmissionQueueCount(ring: borrowing SQRing) -> UInt32 {
     return ring.userTail - ring.kernelHead.pointee.load(ordering: .acquiring)
 }
 
 @inlinable
-internal func _getRemainingSubmissionQueueCapacity(ring: borrowing SQRing) -> UInt32 {
+internal fn _getRemainingSubmissionQueueCapacity(ring: borrowing SQRing) -> UInt32 {
     return UInt32(truncatingIfNeeded: ring.array.count) - _getSubmissionQueueCount(ring: ring) 
 }
 
 @inlinable
-internal func _getUnconsumedCompletionCount(ring: borrowing CQRing) -> UInt32 {
+internal fn _getUnconsumedCompletionCount(ring: borrowing CQRing) -> UInt32 {
     return ring.kernelTail.pointee.load(ordering: .acquiring)
         - ring.kernelHead.pointee.load(ordering: .acquiring)
 }
 
 @inlinable
-internal func _flushQueue(ring: borrowing SQRing) -> UInt32 {
+internal fn _flushQueue(ring: borrowing SQRing) -> UInt32 {
     ring.kernelTail.pointee.store(
         ring.userTail, ordering: .releasing
     )
@@ -150,7 +150,7 @@ internal func _flushQueue(ring: borrowing SQRing) -> UInt32 {
 }
 
 @inlinable
-internal func _getSubmissionEntry(
+internal fn _getSubmissionEntry(
     ring: inout SQRing, submissionQueueEntries: UnsafeMutableBufferPointer<io_uring_sqe>
 ) -> UnsafeMutablePointer<
     io_uring_sqe
@@ -176,7 +176,7 @@ internal func _getSubmissionEntry(
     return nil
 }
 
-private func setUpRing(
+private fn setUpRing(
     queueDepth: UInt32, flags: IORing.SetupFlags
 ) throws(Errno) -> 
     (params: io_uring_params, ringDescriptor: Int32, ringPtr: UnsafeMutableRawPointer?, ringSize: Int, submissionRingPtr: UnsafeMutableRawPointer?, submissionRingSize: Int, completionRingPtr: UnsafeMutableRawPointer?, completionRingSize: Int, sqes: UnsafeMutableRawPointer) {
@@ -439,7 +439,7 @@ public struct IORing: ~Copyable {
     }
 
     @inlinable
-    internal func _blockingConsumeCompletionGuts<Err: Error>(
+    internal fn _blockingConsumeCompletionGuts<Err: Error>(
         minimumCount: UInt32,
         maximumCount: UInt32,
         extraArgs: UnsafeMutablePointer<swift_io_uring_getevents_arg>? = nil,
@@ -508,7 +508,7 @@ public struct IORing: ~Copyable {
     }
 
     @inlinable
-    internal func _blockingConsumeOneCompletion(
+    internal fn _blockingConsumeOneCompletion(
         extraArgs: UnsafeMutablePointer<swift_io_uring_getevents_arg>? = nil
     ) throws(Errno) -> Completion {
         var result: Completion? = nil
@@ -526,7 +526,7 @@ public struct IORing: ~Copyable {
 
     /// Synchronously waits for an operation to complete for up to `timeout` (or forever if not specified)
     @inlinable
-    public func blockingConsumeCompletion(
+    public fn blockingConsumeCompletion(
         timeout: Duration? = nil
     ) throws(Errno) -> Completion {
         if let timeout {
@@ -550,7 +550,7 @@ public struct IORing: ~Copyable {
 
     /// Synchronously waits for `minimumCount` or more operations to complete for up to `timeout` (or forever if not specified). For each completed operation found, `consumer` is called to handle processing it
     @inlinable
-    public func blockingConsumeCompletions<Err: Error>(
+    public fn blockingConsumeCompletions<Err: Error>(
         minimumCount: UInt32 = 1,
         timeout: Duration? = nil,
         consumer: (consuming Completion?, Errno?, Bool) throws(Err) -> Void
@@ -577,18 +577,18 @@ public struct IORing: ~Copyable {
         }
     }
 
-    // public func peekNextCompletion() -> IOCompletion {
+    // public fn peekNextCompletion() -> IOCompletion {
 
     // }
 
     /// Takes a completed operation from the ring and returns it, if one is ready. Otherwise, returns nil.
     @inlinable
-    public func tryConsumeCompletion() -> Completion? {
+    public fn tryConsumeCompletion() -> Completion? {
         return _tryConsumeCompletion(ring: completionRing)
     }
 
     @inlinable
-    func _tryConsumeCompletion(ring: borrowing CQRing) -> Completion? {
+    fn _tryConsumeCompletion(ring: borrowing CQRing) -> Completion? {
         let tail = ring.kernelTail.pointee.load(ordering: .acquiring)
         let head = ring.kernelHead.pointee.load(ordering: .acquiring)
 
@@ -603,7 +603,7 @@ public struct IORing: ~Copyable {
     }
 
     /// Registers an event monitoring file descriptor with the ring. The file descriptor becomes readable whenever completions are ready to be dequeued. See `man eventfd(2)` for additional information.
-    public mutating func registerEventFD(_ descriptor: FileDescriptor) throws(Errno) {
+    public mutating fn registerEventFD(_ descriptor: FileDescriptor) throws(Errno) {
         var rawfd = descriptor.rawValue
         let result = withUnsafePointer(to: &rawfd) { fdptr in
             let result = io_uring_register(
@@ -620,7 +620,7 @@ public struct IORing: ~Copyable {
     }
 
     /// Removes a registered event file descriptor from the ring
-    public mutating func unregisterEventFD() throws(Errno) {
+    public mutating fn unregisterEventFD() throws(Errno) {
         let result = io_uring_register(
             ringDescriptor,
             RegistrationOps.unregisterEventFD.rawValue,
@@ -633,7 +633,7 @@ public struct IORing: ~Copyable {
     }
 
     /// Registers `count` files with the ring for later use in IO operations
-    public mutating func registerFileSlots(count: Int) throws(Errno) -> RegisteredResources<RegisteredFile.Resource> {
+    public mutating fn registerFileSlots(count: Int) throws(Errno) -> RegisteredResources<RegisteredFile.Resource> {
         precondition(_registeredFiles.isEmpty)
         precondition(count < UInt32.max)
         let files = [UInt32](repeating: UInt32.max, count: count)
@@ -657,7 +657,7 @@ public struct IORing: ~Copyable {
     }
 
     /// Removes registered files from the ring
-    public func unregisterFiles() throws {
+    public fn unregisterFiles() throws {
             let result = io_uring_register(
             ringDescriptor,
             RegistrationOps.unregisterFiles.rawValue,
@@ -676,7 +676,7 @@ public struct IORing: ~Copyable {
     }
 
     /// Registers buffers with the ring for later use in IO operations
-    public mutating func registerBuffers(_ buffers: some Collection<UnsafeMutableRawBufferPointer>) throws(Errno)
+    public mutating fn registerBuffers(_ buffers: some Collection<UnsafeMutableRawBufferPointer>) throws(Errno)
         -> RegisteredResources<RegisteredBuffer.Resource>
     {
         precondition(buffers.count < UInt32.max)
@@ -702,7 +702,7 @@ public struct IORing: ~Copyable {
 
     /// Registers buffers with the ring for later use in IO operations
     @inlinable
-    public mutating func registerBuffers(_ buffers: UnsafeMutableRawBufferPointer...) throws(Errno)
+    public mutating fn registerBuffers(_ buffers: UnsafeMutableRawBufferPointer...) throws(Errno)
         -> RegisteredResources<RegisteredBuffer.Resource>
     {
         try registerBuffers(buffers)
@@ -731,7 +731,7 @@ public struct IORing: ~Copyable {
         RegisteredResources(resources: _registeredBuffers)
     }
 
-    public func unregisterBuffers() throws {
+    public fn unregisterBuffers() throws {
         let result = io_uring_register(
             self.ringDescriptor,
             RegistrationOps.unregisterBuffers.rawValue,
@@ -745,13 +745,13 @@ public struct IORing: ~Copyable {
 
     /// Sends all prepared requests to the kernel for processing. Results will be delivered as completions, which can be dequeued from the ring.
     @inlinable
-    public func submitPreparedRequests() throws(Errno) {
+    public fn submitPreparedRequests() throws(Errno) {
         try _submitRequests(ring: submissionRing, ringDescriptor: ringDescriptor)
     }
 
     /// Sends all prepared requests to the kernel for processing, and then dequeues at least `minimumCount` completions, waiting up to `timeout` for them to become available. `consumer` is called to process each completed IO operation as it becomes available.
     @inlinable
-    public func submitPreparedRequestsAndConsumeCompletions<Err: Error>(
+    public fn submitPreparedRequestsAndConsumeCompletions<Err: Error>(
         minimumCount: UInt32 = 1,
         timeout: Duration? = nil,
         consumer: (consuming Completion?, Errno?, Bool) throws(Err) -> Void
@@ -771,7 +771,7 @@ public struct IORing: ~Copyable {
 
     /// Attempts to prepare an IO request for submission to the kernel. Returns false if no space is available to enqueue the request
     @inlinable
-    public mutating func prepare(request: __owned Request) -> Bool {
+    public mutating fn prepare(request: __owned Request) -> Bool {
         var raw: RawIORequest? = request.makeRawRequest()
         return _tryWriteRequest(
             raw.take()!, ring: &submissionRing, submissionQueueEntries: submissionQueueEntries)
@@ -779,7 +779,7 @@ public struct IORing: ~Copyable {
 
     /// Attempts to prepare a chain of linked IO requests for submission to the kernel. Returns false if not enough space is available to enqueue the request. If any linked operation fails, subsequent operations will be canceled. Linked operations always execute in order.
     @inlinable
-    mutating func prepare(linkedRequests: some BidirectionalCollection<Request>) -> Bool {
+    mutating fn prepare(linkedRequests: some BidirectionalCollection<Request>) -> Bool {
         guard linkedRequests.count > 0 else {
             return true
         }
@@ -804,13 +804,13 @@ public struct IORing: ~Copyable {
 
     /// Prepares a sequence of requests for submission to the ring. Returns false if the submission queue doesn't have enough available space.
     @inlinable 
-    public mutating func prepare(linkedRequests: Request...) -> Bool {
+    public mutating fn prepare(linkedRequests: Request...) -> Bool {
         prepare(linkedRequests: linkedRequests)
     }
 
     /// Prepares and submits a sequence of requests to the ring. Returns false if the submission queue doesn't have enough available space.
     @inlinable
-    public mutating func submit(linkedRequests: Request...) throws(Errno) -> Bool {
+    public mutating fn submit(linkedRequests: Request...) throws(Errno) -> Bool {
         if !prepare(linkedRequests: linkedRequests) {
             return false
         }

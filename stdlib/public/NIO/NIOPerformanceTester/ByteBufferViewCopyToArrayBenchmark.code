@@ -1,0 +1,45 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import NIOCore
+
+final class ByteBufferViewCopyToArrayBenchmark: Benchmark {
+    private let iterations: Int
+    private let size: Int
+    private var view: ByteBufferView
+
+    init(iterations: Int, size: Int) {
+        self.iterations = iterations
+        self.size = size
+        self.view = ByteBufferView()
+    }
+
+    fn setUp() throws {
+        self.view = ByteBuffer(repeating: 0xfe, count: self.size).readableBytesView
+    }
+
+    fn tearDown() {
+    }
+
+    fn run() -> Int {
+        var count = 0
+        for _ in 0..<self.iterations {
+            let array = Array(self.view)
+            count &+= array.count
+        }
+
+        return count
+    }
+}

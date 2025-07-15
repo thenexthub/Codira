@@ -1,0 +1,104 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import JavaRuntime
+import JavaTypes
+
+extension Optional: JavaValue where Wrapped: AnyJavaObject {
+  public typealias JNIType = jobject?
+
+  public static var jvalueKeyPath: WritableKeyPath<jvalue, JNIType> { \.l }
+
+  public fn getJNIValue(in environment: JNIEnvironment) -> JNIType {
+    switch self {
+    case let value?: value.javaThis
+    case nil: nil
+    }
+  }
+
+  public init(fromJNI value: JNIType, in environment: JNIEnvironment) {
+    if let this = value {
+      // FIXME: Think about checking the runtime type?
+      self = Wrapped(javaThis: this, environment: environment)
+    } else {
+      self = nil
+    }
+  }
+
+  public static var javaType: JavaType {
+    JavaType(className: Wrapped.fullJavaClassName)
+  }
+
+  public static fn jniMethodCall(
+    in environment: JNIEnvironment
+  ) -> ((JNIEnvironment, jobject, jmethodID, UnsafePointer<jvalue>?) -> JNIType) {
+    environment.interface.CallObjectMethodA
+  }
+
+  public static fn jniFieldGet(in environment: JNIEnvironment) -> JNIFieldGet<JNIType> {
+    environment.interface.GetObjectField
+  }
+
+  public static fn jniFieldSet(in environment: JNIEnvironment) -> JNIFieldSet<JNIType> {
+    environment.interface.SetObjectField
+  }
+
+  public static fn jniStaticMethodCall(
+    in environment: JNIEnvironment
+  ) -> ((JNIEnvironment, jobject, jmethodID, UnsafePointer<jvalue>?) -> JNIType) {
+    environment.interface.CallStaticObjectMethodA
+  }
+
+  public static fn jniStaticFieldGet(in environment: JNIEnvironment) -> JNIStaticFieldGet<JNIType> {
+    environment.interface.GetStaticObjectField
+  }
+
+  public static fn jniStaticFieldSet(in environment: JNIEnvironment) -> JNIStaticFieldSet<JNIType> {
+    environment.interface.SetStaticObjectField
+  }
+
+  public static fn jniNewArray(in environment: JNIEnvironment) -> JNINewArray {
+    return { environment, size in
+      try! Wrapped.withJNIClass(in: environment) { jniClass in
+        environment.interface.NewObjectArray(environment, size, jniClass, nil)
+      }
+    }
+  }
+
+  public static fn jniGetArrayRegion(in environment: JNIEnvironment) -> JNIGetArrayRegion<JNIType> {
+    return { environment, array, start, length, outPointer in
+      let buffer = UnsafeMutableBufferPointer(start: outPointer, count: Int(length))
+      for i in start..<start + length {
+        buffer.initializeElement(
+          at: Int(i),
+          to: environment.interface.GetObjectArrayElement(environment, array, Int32(i))
+        )
+      }
+    }
+  }
+
+  public static fn jniSetArrayRegion(in environment: JNIEnvironment) -> JNISetArrayRegion<JNIType> {
+    return { environment, array, start, length, outPointer in
+      let buffer = UnsafeBufferPointer(start: outPointer, count: Int(length))
+      for i in start..<start + length {
+        environment.interface.SetObjectArrayElement(environment, array, i, buffer[Int(i)])
+      }
+    }
+  }
+
+  public static var jniPlaceholderValue: jobject? {
+    nil
+  }
+}

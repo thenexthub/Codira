@@ -1565,7 +1565,7 @@ extension Errno: CustomStringConvertible, CustomDebugStringConvertible {
 @available(/*System 0.0.1: macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0*/iOS 8, *)
 extension Errno {
   @_alwaysEmitIntoClient
-  public static func ~=(_ lhs: Errno, _ rhs: Error) -> Bool {
+  public static fn ~=(_ lhs: Errno, _ rhs: Error) -> Bool {
     guard let value = rhs as? Errno else { return false }
     return lhs == value
   }

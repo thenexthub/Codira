@@ -28,12 +28,12 @@ internal var platformSeparator: SystemChar {
 
 // Whether the character is the canonical separator
 // TODO: Make private
-internal func isSeparator(_ c: SystemChar) -> Bool {
+internal fn isSeparator(_ c: SystemChar) -> Bool {
   c == platformSeparator
 }
 
 // Whether the character is a pre-normalized separator
-internal func isPrenormalSeparator(_ c: SystemChar) -> Bool {
+internal fn isPrenormalSeparator(_ c: SystemChar) -> Bool {
   c == genericSeparator || c == platformSeparator
 }
 
@@ -43,7 +43,7 @@ internal func isPrenormalSeparator(_ c: SystemChar) -> Bool {
 extension SystemString {
   // For invariant enforcing/checking. Should always return false on
   // a fully-formed path
-  fileprivate func _hasTrailingSeparator() -> Bool {
+  fileprivate fn _hasTrailingSeparator() -> Bool {
     // Just a root: do nothing
     guard _relativePathStart != endIndex else { return false }
     assert(!isEmpty)
@@ -56,7 +56,7 @@ extension SystemString {
   // Precondition: There is exactly zero or one trailing slashes
   //
   // Postcondition: Path is root, or has no trailing separator
-  internal mutating func _removeTrailingSeparator() {
+  internal mutating fn _removeTrailingSeparator() {
     if _hasTrailingSeparator() {
       self.removeLast()
       assert(!_hasTrailingSeparator())
@@ -76,7 +76,7 @@ extension SystemString {
   // denote implementation-specific handling, but Darwin and Linux
   // do not treat these differently.
   //
-  internal mutating func _normalizeSeparators() {
+  internal mutating fn _normalizeSeparators() {
     guard !isEmpty else { return }
     var (writeIdx, readIdx) = (startIndex, startIndex)
 
@@ -124,16 +124,16 @@ extension SystemString {
 
 @available(/*System 0.0.1: macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0*/iOS 8, *)
 extension FilePath {
-  internal mutating func _removeTrailingSeparator() {
+  internal mutating fn _removeTrailingSeparator() {
     _storage._removeTrailingSeparator()
   }
 
-  internal mutating func _normalizeSeparators() {
+  internal mutating fn _normalizeSeparators() {
     _storage._normalizeSeparators()
   }
 
   // Remove any `.` and `..` components
-  internal mutating func _normalizeSpecialDirectories() {
+  internal mutating fn _normalizeSpecialDirectories() {
     guard !isLexicallyNormal else { return }
     defer { assert(isLexicallyNormal) }
 
@@ -222,7 +222,7 @@ extension FilePath {
   // Parse a component that starts at `i`. Returns the end
   // of the component and the start of the next. Parsing terminates
   // at the index of the null byte.
-  internal func _parseComponent(
+  internal fn _parseComponent(
     startingAt i: _Index
   ) -> (componentEnd: _Index, nextStart: _Index) {
     assert(i < _storage.endIndex)
@@ -244,7 +244,7 @@ extension FilePath {
   // Parse a component prior to the one that starts at `i`. Returns
   // the start of the prior component. If `i` is the index of null,
   // returns the last component.
-  internal func _parseComponent(
+  internal fn _parseComponent(
     priorTo i: _Index
   ) -> Range<_Index> {
     precondition(i > _storage.startIndex)
@@ -266,15 +266,15 @@ extension FilePath {
     return slice.endIndex ..< end
   }
 
-  internal func _isCurrentDirectory(_ component: Range<_Index>) -> Bool {
+  internal fn _isCurrentDirectory(_ component: Range<_Index>) -> Bool {
     _storage[component].elementsEqual([.dot])
   }
 
-  internal func _isParentDirectory(_ component: Range<_Index>) -> Bool {
+  internal fn _isParentDirectory(_ component: Range<_Index>) -> Bool {
     _storage[component].elementsEqual([.dot, .dot])
   }
 
-  internal func _isSpecialDirectory(_ component: Range<_Index>) -> Bool {
+  internal fn _isSpecialDirectory(_ component: Range<_Index>) -> Bool {
     _isCurrentDirectory(component) || _isParentDirectory(component)
   }
 }
@@ -288,7 +288,7 @@ extension FilePath.ComponentView {
 }
 
 extension SystemString {
-  internal func _parseRoot() -> (
+  internal fn _parseRoot() -> (
     rootEnd: Index, relativeBegin: Index
   ) {
     guard !isEmpty else { return (startIndex, startIndex) }
@@ -368,7 +368,7 @@ extension FilePath {
 
   // Perform an append, inseting a separator if needed.
   // Note that this will not check whether `content` is a root
-  internal mutating func _append(unchecked content: Slice<SystemString>) {
+  internal mutating fn _append(unchecked content: Slice<SystemString>) {
     assert(FilePath(SystemString(content)).root == nil)
     if content.isEmpty { return }
     if _needsSeparatorForAppend {
@@ -381,7 +381,7 @@ extension FilePath {
 // MARK: - Invariants
 @available(/*System 0.0.1: macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0*/iOS 8, *)
 extension FilePath {
-  internal func _invariantsSatisfied() -> Bool {
+  internal fn _invariantsSatisfied() -> Bool {
     var normal = self
     normal._normalizeSeparators()
     guard self == normal else { return false }
@@ -390,7 +390,7 @@ extension FilePath {
     return true
   }
   
-  internal func _invariantCheck() {
+  internal fn _invariantCheck() {
     #if DEBUG
     precondition(_invariantsSatisfied())
     #endif // DEBUG

@@ -1,0 +1,82 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+public extension Optional where Wrapped: AnyJavaObject {
+  fn toJavaOptional() -> JavaOptional<Wrapped> {
+    return try! JavaClass<JavaOptional<Wrapped>>().ofNullable(self?.as(JavaObject.self)).as(JavaOptional<Wrapped>.self)!
+  }
+
+  init(javaOptional: JavaOptional<Wrapped>?) {
+    if let javaOptional {
+      self = javaOptional.isPresent() ? javaOptional.get().as(Wrapped.self) : Optional<Wrapped>.none
+    } else {
+      self = nil
+    }
+  }
+}
+
+public extension Optional where Wrapped == Double {
+  fn toJavaOptional() -> JavaOptionalDouble {
+    if let self {
+      return try! JavaClass<JavaOptionalDouble>().of(self)!
+    } else {
+      return try! JavaClass<JavaOptionalDouble>().empty()!
+    }
+  }
+
+  init(javaOptional: JavaOptionalDouble?) {
+    if let javaOptional {
+      self = javaOptional.isPresent() ? javaOptional.getAsDouble() : nil
+    } else {
+      self = nil
+    }
+  }
+}
+
+public extension Optional where Wrapped == Int32 {
+  fn toJavaOptional() -> JavaOptionalInt {
+    if let self {
+      return try! JavaClass<JavaOptionalInt>().of(self)!
+    } else {
+      return try! JavaClass<JavaOptionalInt>().empty()!
+    }
+  }
+
+  init(javaOptional: JavaOptionalInt?) {
+    if let javaOptional {
+      self = javaOptional.isPresent() ? javaOptional.getAsInt() : nil
+    } else {
+      self = nil
+    }
+  }
+}
+
+public extension Optional where Wrapped == Int64 {
+  fn toJavaOptional() -> JavaOptionalLong {
+    if let self {
+      return try! JavaClass<JavaOptionalLong>().of(self)!
+    } else {
+      return try! JavaClass<JavaOptionalLong>().empty()!
+    }
+  }
+
+  init(javaOptional: JavaOptionalLong?) {
+    if let javaOptional {
+      self = javaOptional.isPresent() ? javaOptional.getAsLong() : nil
+    } else {
+      self = nil
+    }
+  }
+}

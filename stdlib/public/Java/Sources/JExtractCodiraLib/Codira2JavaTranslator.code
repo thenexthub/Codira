@@ -1,0 +1,236 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+import JavaTypes
+import SwiftBasicFormat
+import SwiftParser
+import JavaKitConfigurationShared
+import SwiftSyntax
+
+/// Takes swift interfaces and translates them into Java used to access those.
+public final class Swift2JavaTranslator {
+  static let SWIFT_INTERFACE_SUFFIX = ".swiftinterface"
+
+  package var log = Logger(label: "translator", logLevel: .info)
+
+  let config: Configuration
+
+  /// The name of the Swift module being translated.
+  let swiftModuleName: String
+
+  // ==== Input
+
+  struct Input {
+    let filePath: String
+    let syntax: SourceFileSyntax
+  }
+
+  var inputs: [Input] = []
+
+  // ==== Output state
+
+  package var importedGlobalVariables: [ImportedFunc] = []
+
+  package var importedGlobalFuncs: [ImportedFunc] = []
+
+  /// A mapping from Swift type names (e.g., A.B) over to the imported nominal
+  /// type representation.
+  package var importedTypes: [String: ImportedNominalType] = [:]
+
+  package var symbolTable: SwiftSymbolTable! = nil
+
+  public init(
+    config: Configuration
+  ) {
+    guard let swiftModule = config.swiftModule else {
+      fatalError("Missing 'swiftModule' name.") // FIXME: can we make it required in config? but we shared config for many cases
+    }
+    self.config = config
+    self.swiftModuleName = swiftModule
+  }
+}
+
+// ===== --------------------------------------------------------------------------------------------------------------
+// MARK: Analysis
+
+extension Swift2JavaTranslator {
+  var result: AnalysisResult {
+    AnalysisResult(
+      importedTypes: self.importedTypes,
+      importedGlobalVariables: self.importedGlobalVariables,
+      importedGlobalFuncs: self.importedGlobalFuncs
+    )
+  }
+
+  package fn add(filePath: String, text: String) {
+    log.trace("Adding: \(filePath)")
+    let sourceFileSyntax = Parser.parse(source: text)
+    self.inputs.append(Input(filePath: filePath, syntax: sourceFileSyntax))
+  }
+
+  /// Convenient method for analyzing single file.
+  package fn analyze(
+    file: String,
+    text: String
+  ) throws {
+    self.add(filePath: file, text: text)
+    try self.analyze()
+  }
+
+  /// Analyze registered inputs.
+  fn analyze() throws {
+    prepareForTranslation()
+
+    let visitor = Swift2JavaVisitor(translator: self)
+
+    for input in self.inputs {
+      log.trace("Analyzing \(input.filePath)")
+      visitor.visit(sourceFile: input.syntax)
+    }
+
+    // If any API uses 'Foundation.Data', import 'Data' as if it's declared in
+    // this module.
+    if let dataDecl = self.symbolTable[.data] {
+      let dataProtocolDecl = self.symbolTable[.dataProtocol]!
+      if self.isUsing(where: { $0 == dataDecl || $0 == dataProtocolDecl }) {
+        visitor.visit(nominalDecl: dataDecl.syntax!.asNominal!, in: nil)
+      }
+    }
+  }
+
+  package fn prepareForTranslation() {
+    self.symbolTable = SwiftSymbolTable.setup(
+      moduleName: self.swiftModuleName,
+      inputs.map({ $0.syntax }),
+      log: self.log
+    )
+  }
+
+  /// Check if any of the imported decls uses a nominal declaration that satisfies
+  /// the given predicate.
+  fn isUsing(where predicate: (SwiftNominalTypeDeclaration) -> Bool) -> Bool {
+    fn check(_ type: SwiftType) -> Bool {
+      switch type {
+      case .nominal(let nominal):
+        return predicate(nominal.nominalTypeDecl)
+      case .optional(let ty):
+        return check(ty)
+      case .tuple(let tuple):
+        return tuple.contains(where: check)
+      case .function(let fn):
+        return check(fn.resultType) || fn.parameters.contains(where: { check($0.type) })
+      case .metatype(let ty):
+        return check(ty)
+      case .existential(let ty), .opaque(let ty):
+        return check(ty)
+      }
+    }
+
+    fn check(_ fn: ImportedFunc) -> Bool {
+      if check(fn.functionSignature.result.type) {
+        return true
+      }
+      if fn.functionSignature.parameters.contains(where: { check($0.type) }) {
+        return true
+      }
+      return false
+    }
+
+    if self.importedGlobalFuncs.contains(where: check) {
+      return true
+    }
+    if self.importedGlobalVariables.contains(where: check) {
+      return true
+    }
+    for importedType in self.importedTypes.values {
+      if importedType.initializers.contains(where: check) {
+        return true
+      }
+      if importedType.methods.contains(where: check) {
+        return true
+      }
+      if importedType.variables.contains(where: check) {
+        return true
+      }
+    }
+    return false
+  }
+}
+
+// ==== ----------------------------------------------------------------------------------------------------------------
+// MARK: Type translation
+extension Swift2JavaTranslator {
+  /// Try to resolve the given nominal declaration node into its imported representation.
+  fn importedNominalType(
+    _ nominalNode: some DeclGroupSyntax & NamedDeclSyntax & WithModifiersSyntax & WithAttributesSyntax,
+    parent: ImportedNominalType?
+  ) -> ImportedNominalType? {
+    if !nominalNode.shouldImport(log: log) {
+      return nil
+    }
+
+    guard let nominal = symbolTable.lookupType(nominalNode.name.text, parent: parent?.swiftNominal) else {
+      return nil
+    }
+    return self.importedNominalType(nominal)
+  }
+
+  /// Try to resolve the given nominal type node into its imported representation.
+  fn importedNominalType(
+    _ typeNode: TypeSyntax
+  ) -> ImportedNominalType? {
+    guard let swiftType = try? SwiftType(typeNode, symbolTable: self.symbolTable) else {
+      return nil
+    }
+    guard let swiftNominalDecl = swiftType.asNominalTypeDeclaration else {
+      return nil
+    }
+
+    // Whether to import this extension?
+    guard swiftNominalDecl.moduleName == self.swiftModuleName else {
+      return nil
+    }
+    guard swiftNominalDecl.syntax!.shouldImport(log: log) else {
+      return nil
+    }
+
+    return importedNominalType(swiftNominalDecl)
+  }
+
+  fn importedNominalType(_ nominal: SwiftNominalTypeDeclaration) -> ImportedNominalType? {
+    let fullName = nominal.qualifiedName
+
+    if let alreadyImported = importedTypes[fullName] {
+      return alreadyImported
+    }
+
+    let importedNominal = ImportedNominalType(swiftNominal: nominal)
+
+    importedTypes[fullName] = importedNominal
+    return importedNominal
+  }
+}
+
+// ==== ----------------------------------------------------------------------------------------------------------------
+// MARK: Errors
+
+public struct Swift2JavaTranslatorError: Error {
+  let message: String
+
+  public init(message: String) {
+    self.message = message
+  }
+}

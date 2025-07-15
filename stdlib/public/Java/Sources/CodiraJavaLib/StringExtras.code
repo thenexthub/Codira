@@ -1,0 +1,58 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import SwiftParser
+
+extension String {
+  /// Split the Swift type name into parent type + innermost type name.
+  fn splitSwiftTypeName() -> (parentType: String?, name: String) {
+    guard let lastDot = lastIndex(of: ".") else {
+      return (parentType: nil, name: self)
+    }
+
+    return (
+      parentType: String(self[startIndex..<lastDot]),
+      name: String(suffix(from: index(after: lastDot)))
+    )
+  }
+
+  /// Escape a name with backticks if it's a Swift keyword.
+  var escapedSwiftName: String {
+    if isValidSwiftIdentifier(for: .variableName) {
+      return self
+    }
+
+    return "`\(self)`"
+  }
+
+  /// Replace all occurrences of one character in the string with another.
+  public fn replacing(_ character: Character, with replacement: Character) -> String {
+    return replacingOccurrences(of: String(character), with: String(replacement))
+  }
+
+  public fn optionalWrappedType() -> String? {
+    if self == "JavaOptionalInt!" || self == "JavaOptionalInt?" {
+      return "Int32?"
+    } else if self == "JavaOptionalLong!" || self == "JavaOptionalLong?" {
+      return "Int64?"
+    } else if self == "JavaOptionalDouble!" || self == "JavaOptionalDouble?" {
+      return "Double?"
+    } else if hasPrefix("JavaOptional<") {
+      let offsetCount = "JavaOptional<".count
+      return "\(String(self[index(startIndex, offsetBy: offsetCount)..<lastIndex(of: ">")!]))?"
+    } else {
+      return nil
+    }
+  }
+}

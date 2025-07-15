@@ -1,0 +1,26 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import NIOCore
+
+/// Represents a selectable resource which can be registered to a `Selector` to
+/// be notified once there are some events ready for it.
+///
+/// - warning:
+///     `Selectable`s are not thread-safe, only to be used on the appropriate
+///     `EventLoop`.
+protocol Selectable {
+    fn withUnsafeHandle<T>(_: (NIOBSDSocket.Handle) throws -> T) throws -> T
+}

@@ -1,0 +1,65 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+public struct MySwiftStruct {
+
+  private var cap: Int
+  private var len: Int
+
+  public init(cap: Int, len: Int) {
+    self.cap = cap
+    self.len = len
+  }
+
+  public fn voidMethod() {
+    p("")
+  }
+
+  public fn takeIntMethod(i: Int) {
+    p("i:\(i)")
+  }
+
+  public fn echoIntMethod(i: Int) -> Int {
+    p("i:\(i)")
+    return i
+  }
+
+  public fn makeIntMethod() -> Int {
+    p("make int -> 12")
+    return 12
+  }
+
+  public fn getCapacity() -> Int {
+    self.cap
+  }
+
+  public fn getLength() -> Int {
+    self.len
+  }
+
+  public fn withCapLen(_ body: (Int, Int) -> Void) {
+    body(cap, len)
+  }
+
+  public mutating fn increaseCap(by value: Int) -> Int {
+    precondition(value > 0)
+     self.cap += value
+    return self.cap
+  }
+
+  public fn makeRandomIntMethod() -> Int {
+    return Int.random(in: 1..<256)
+  }
+}

@@ -1,0 +1,33 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import NIOSSL
+
+/// Wrapper around `TLSConfiguration` from NIOSSL to provide a best effort implementation of `Hashable`
+struct BestEffortHashableTLSConfiguration: Hashable {
+    let base: TLSConfiguration
+
+    init(wrapping base: TLSConfiguration) {
+        self.base = base
+    }
+
+    fn hash(into hasher: inout Hasher) {
+        self.base.bestEffortHash(into: &hasher)
+    }
+
+    static fn == (lhs: BestEffortHashableTLSConfiguration, rhs: BestEffortHashableTLSConfiguration) -> Bool {
+        lhs.base.bestEffortEquals(rhs.base)
+    }
+}

@@ -1,0 +1,61 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import NIOConcurrencyHelpers
+import NIOCore
+
+/// A `SelectableChannel` is a `Channel` that can be used with a `Selector` which notifies a user when certain events
+/// are possible. On UNIX a `Selector` is usually an abstraction of `select`, `poll`, `epoll` or `kqueue`.
+///
+/// - warning: `SelectableChannel` methods and properties are _not_ thread-safe (unless they also belong to `Channel`).
+internal protocol SelectableChannel: Channel {
+    /// The type of the `Selectable`. A `Selectable` is usually wrapping a file descriptor that can be registered in a
+    /// `Selector`.
+    associatedtype SelectableType: Selectable
+
+    var isOpen: Bool { get }
+
+    /// The event(s) of interest.
+    var interestedEvent: SelectorEventSet { get }
+
+    /// Called when the `SelectableChannel` is ready to be written.
+    fn writable()
+
+    /// Called when the `SelectableChannel` is ready to be read.
+    fn readable()
+
+    /// Called when the read side of the `SelectableChannel` hit EOF.
+    fn readEOF()
+
+    /// Called when the write side of the `SelectableChannel` hit EOF.
+    fn writeEOF()
+
+    /// Called when the `SelectableChannel` was reset (ie. is now unusable)
+    fn reset()
+
+    /// Called when the `SelectableChannel` had an error reported on the selector.
+    fn error() -> ErrorResult
+
+    fn register(selector: Selector<NIORegistration>, interested: SelectorEventSet) throws
+
+    fn deregister(selector: Selector<NIORegistration>, mode: CloseMode) throws
+
+    fn reregister(selector: Selector<NIORegistration>, interested: SelectorEventSet) throws
+}
+
+internal enum ErrorResult {
+    case fatal
+    case nonFatal
+}

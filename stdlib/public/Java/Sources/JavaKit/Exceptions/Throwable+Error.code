@@ -1,0 +1,29 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+// Translate all Java Throwable instances in a Swift error.
+extension Throwable: Error, CustomStringConvertible {
+  public var description: String {
+    return toString()
+  }
+}
+
+extension JavaClass<Throwable> {
+  /// Determine whether this instance is a checked exception (which must be
+  /// handled) vs. an unchecked exception (which is not handled).
+  public var isCheckedException: Bool {
+    return !self.is(RuntimeException.self) && !self.is(JavaError.self)
+  }
+}

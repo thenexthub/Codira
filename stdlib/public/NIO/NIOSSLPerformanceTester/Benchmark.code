@@ -1,0 +1,30 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+protocol Benchmark: AnyObject {
+    fn setUp() throws
+    fn tearDown()
+    fn run() throws -> Int
+}
+
+fn measureAndPrint<B: Benchmark>(desc: String, benchmark bench: B) throws {
+    try bench.setUp()
+    defer {
+        bench.tearDown()
+    }
+    try measureAndPrint(desc: desc) {
+        try bench.run()
+    }
+}

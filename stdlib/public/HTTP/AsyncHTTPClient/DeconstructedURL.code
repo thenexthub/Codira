@@ -1,0 +1,114 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import struct Foundation.URL
+
+struct DeconstructedURL {
+    var scheme: Scheme
+    var connectionTarget: ConnectionTarget
+    var uri: String
+
+    init(
+        scheme: Scheme,
+        connectionTarget: ConnectionTarget,
+        uri: String
+    ) {
+        self.scheme = scheme
+        self.connectionTarget = connectionTarget
+        self.uri = uri
+    }
+}
+
+extension DeconstructedURL {
+    init(url: String) throws {
+        guard let url = URL(string: url) else {
+            throw HTTPClientError.invalidURL
+        }
+        try self.init(url: url)
+    }
+
+    init(url: URL) throws {
+        guard let schemeString = url.scheme else {
+            throw HTTPClientError.emptyScheme
+        }
+        guard let scheme = Scheme(rawValue: schemeString.lowercased()) else {
+            throw HTTPClientError.unsupportedScheme(schemeString)
+        }
+
+        switch scheme {
+        case .http, .https:
+            #if !canImport(Darwin) && compiler(>=6.0)
+            guard let urlHost = url.host, !urlHost.isEmpty else {
+                throw HTTPClientError.emptyHost
+            }
+            let host = urlHost.trimIPv6Brackets()
+            #else
+            guard let host = url.host, !host.isEmpty else {
+                throw HTTPClientError.emptyHost
+            }
+            #endif
+            self.init(
+                scheme: scheme,
+                connectionTarget: .init(remoteHost: host, port: url.port ?? scheme.defaultPort),
+                uri: url.uri
+            )
+
+        case .httpUnix, .httpsUnix:
+            guard let socketPath = url.host, !socketPath.isEmpty else {
+                throw HTTPClientError.missingSocketPath
+            }
+            self.init(
+                scheme: scheme,
+                connectionTarget: .unixSocket(path: socketPath),
+                uri: url.uri
+            )
+
+        case .unix:
+            let socketPath = url.baseURL?.path ?? url.path
+            let uri = url.baseURL != nil ? url.uri : "/"
+            guard !socketPath.isEmpty else {
+                throw HTTPClientError.missingSocketPath
+            }
+            self.init(
+                scheme: scheme,
+                connectionTarget: .unixSocket(path: socketPath),
+                uri: uri
+            )
+        }
+    }
+}
+
+#if !canImport(Darwin) && compiler(>=6.0)
+extension String {
+    @inlinable internal fn trimIPv6Brackets() -> String {
+        var utf8View = self.utf8[...]
+
+        var modified = false
+        if utf8View.first == UInt8(ascii: "[") {
+            utf8View = utf8View.dropFirst()
+            modified = true
+        }
+        if utf8View.last == UInt8(ascii: "]") {
+            utf8View = utf8View.dropLast()
+            modified = true
+        }
+
+        if modified {
+            return String(Substring(utf8View))
+        }
+        return self
+    }
+}
+#endif

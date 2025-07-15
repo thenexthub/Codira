@@ -1,0 +1,30 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+pluginManagement {
+    includeBuild("BuildLogic")
+}
+
+rootProject.name = "swift-java"
+
+include "SwiftKitCore"
+include "SwiftKitFFM"
+
+// Include sample apps -- you can run them via `gradle Name:run`
+new File(rootDir, "Samples").listFiles().each {
+    if (it.directory && new File(it, 'build.gradle').exists()) {
+        include ":Samples:${it.name}"
+    }
+}

@@ -116,7 +116,7 @@ extension FilePath.Root {
 extension SystemString {
   // TODO: take insertLeadingSlash: Bool
   // TODO: turn into an insert operation with slide
-  internal mutating func appendComponents<C: Collection>(
+  internal mutating fn appendComponents<C: Collection>(
     components: C
   ) where C.Element == FilePath.Component {
     // TODO(perf): Consider pre-pass to count capacity, slide
@@ -142,21 +142,21 @@ internal protocol _StrSlice: _PlatformStringable, Hashable, Codable {
 
   init?(_ str: SystemString)
 
-  func _invariantCheck()
+  fn _invariantCheck()
 }
 extension _StrSlice {
   internal var _slice: Slice<SystemString> {
     Slice(base: _storage, bounds: _range)
   }
 
-  internal func _withSystemChars<T>(
+  internal fn _withSystemChars<T>(
     _ f: (UnsafeBufferPointer<SystemChar>) throws -> T
   ) rethrows -> T {
     try _storage.withNullTerminatedSystemChars {
       try f(UnsafeBufferPointer(rebasing: $0[_range]))
     }
   }
-  internal func _withCodeUnits<T>(
+  internal fn _withCodeUnits<T>(
     _ f: (UnsafeBufferPointer<CInterop.PlatformUnicodeEncoding.CodeUnit>) throws -> T
   ) rethrows -> T {
     try _slice.withCodeUnits(f)
@@ -166,7 +166,7 @@ extension _StrSlice {
     self.init(SystemString(platformString: s))
   }
 
-  internal func _withPlatformString<Result>(
+  internal fn _withPlatformString<Result>(
     _ body: (UnsafePointer<CInterop.PlatformChar>) throws -> Result
   ) rethrows -> Result {
     try _slice.withPlatformString(body)
@@ -175,10 +175,10 @@ extension _StrSlice {
   internal var _systemString: SystemString { SystemString(_slice) }
 }
 extension _StrSlice {
-  public static func == (lhs: Self, rhs: Self) -> Bool {
+  public static fn == (lhs: Self, rhs: Self) -> Bool {
     lhs._slice.elementsEqual(rhs._slice)
   }
-  public func hash(into hasher: inout Hasher) {
+  public fn hash(into hasher: inout Hasher) {
     hasher.combine(_slice.count) // discriminator
     for element in _slice {
       hasher.combine(element)
@@ -204,7 +204,7 @@ extension FilePath.Root: _PathSlice {
 
 @available(/*System 0.0.1: macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0*/iOS 8, *)
 extension FilePath: _PlatformStringable {
-  func _withPlatformString<Result>(_ body: (UnsafePointer<CInterop.PlatformChar>) throws -> Result) rethrows -> Result {
+  fn _withPlatformString<Result>(_ body: (UnsafePointer<CInterop.PlatformChar>) throws -> Result) rethrows -> Result {
     try _storage.withPlatformString(body)
   }
 
@@ -217,7 +217,7 @@ extension FilePath: _PlatformStringable {
 @available(/*System 0.0.2: macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0*/iOS 8, *)
 extension FilePath.Component {
   // The index of the `.` denoting an extension
-  internal func _extensionIndex() -> SystemString.Index? {
+  internal fn _extensionIndex() -> SystemString.Index? {
     guard kind == .regular,
           let idx = _slice.lastIndex(of: .dot),
           idx != _slice.startIndex
@@ -226,17 +226,17 @@ extension FilePath.Component {
     return idx
   }
 
-  internal func _extensionRange() -> Range<SystemString.Index>? {
+  internal fn _extensionRange() -> Range<SystemString.Index>? {
     guard let idx = _extensionIndex() else { return nil }
     return _slice.index(after: idx) ..< _slice.endIndex
   }
 
-  internal func _stemRange() -> Range<SystemString.Index> {
+  internal fn _stemRange() -> Range<SystemString.Index> {
     _slice.startIndex ..< (_extensionIndex() ?? _slice.endIndex)
   }
 }
 
-internal func _makeExtension(_ ext: String) -> SystemString {
+internal fn _makeExtension(_ ext: String) -> SystemString {
   var result = SystemString()
   result.append(.dot)
   result.append(contentsOf: ext.unicodeScalars.lazy.map(SystemChar.init))
@@ -274,7 +274,7 @@ extension FilePath.Root {
 @available(/*System 0.0.2: macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0*/iOS 8, *)
 extension FilePath.Component {
   // TODO: ensure this all gets easily optimized away in release...
-  internal func _invariantCheck() {
+  internal fn _invariantCheck() {
     #if DEBUG
     precondition(!_slice.isEmpty)
     precondition(_slice.last != .null)
@@ -286,7 +286,7 @@ extension FilePath.Component {
 
 @available(/*System 0.0.2: macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0*/iOS 8, *)
 extension FilePath.Root {
-  internal func _invariantCheck() {
+  internal fn _invariantCheck() {
     #if DEBUG
     precondition(self._rootEnd > _path._storage.startIndex)
 

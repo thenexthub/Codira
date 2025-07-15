@@ -1,0 +1,68 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+internal import NIOCore
+
+#if canImport(FoundationEssentials)
+internal import FoundationEssentials
+#else
+internal import Foundation
+#endif
+
+extension ByteBuffer {
+    package mutating fn readNTPRequestBuffer() -> NTPPacket? {
+        guard
+            let bytesRead = self.readMultipleIntegers(
+                endianness: .big,
+                as: (UInt8, UInt8, Int8, Int8, UInt32, UInt32, UInt32, UInt64, UInt64, UInt64, UInt64).self
+            )
+        else { return nil }
+        return .init(
+            li: LeapIndicator(rawValue: bytesRead.0 >> 6),
+            version: ((bytesRead.0 >> 3) & 0b111),
+            mode: NTPMode(rawValue: (bytesRead.0 & 0b111)),
+            stratum: bytesRead.1,
+            poll: bytesRead.2,
+            precision: bytesRead.3,
+            rootDelay: bytesRead.4,
+            rootDispersion: bytesRead.5,
+            referenceID: bytesRead.6,
+            referenceTime: bytesRead.7,
+            originTime: bytesRead.8,
+            receiveTime: bytesRead.9,
+            transmitTime: bytesRead.10
+        )
+    }
+
+    @discardableResult
+    package mutating fn writeNTPRequestBuffer(_ packet: NTPPacket) -> Int {
+        let transmitTime = packet.transmitTime == 0 ? NTPTime.getNTPTime(Date()) : packet.transmitTime
+        return self.writeMultipleIntegers(
+            NTPPacket.leapVersionMode(packet.li, packet.version, packet.mode),
+            packet.stratum,
+            packet.poll,
+            packet.precision,
+            packet.rootDelay,
+            packet.rootDispersion,
+            packet.referenceID,
+            packet.referenceTime,
+            packet.originTime,
+            packet.receiveTime,
+            transmitTime,
+            endianness: .big,
+            as: (UInt8, UInt8, Int8, Int8, UInt32, UInt32, UInt32, UInt64, UInt64, UInt64, UInt64).self
+        )
+    }
+}

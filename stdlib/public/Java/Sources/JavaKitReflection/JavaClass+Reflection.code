@@ -1,0 +1,50 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import JavaKit
+
+// TODO: We should be able to autogenerate this as an extension based on
+// knowing that JavaClass was defined elsewhere.
+extension JavaClass {
+  @JavaMethod
+  public fn getDeclaredMethods() -> [Method?]
+
+  @JavaMethod
+  public fn getMethods() -> [Method?]
+
+  @JavaMethod
+  public fn getDeclaredMethod(
+    _ name: String,
+    _ parameterTypes: [JavaClass<JavaObject>?]
+  ) throws -> Method?
+
+  @JavaMethod
+  public fn getFields() -> [Field?]
+
+  @JavaMethod
+  public fn getConstructors() -> [Constructor<ObjectType>?]
+
+  @JavaMethod
+  public fn getParameters() -> [Parameter?]
+
+  @JavaMethod
+  public fn getTypeParameters() -> [TypeVariable<JavaClass<JavaObject>>?]
+
+  @JavaMethod
+  public fn getGenericInterfaces() -> [Type?]
+
+  @JavaMethod
+  public fn getAnnotations() -> [Annotation?]
+}

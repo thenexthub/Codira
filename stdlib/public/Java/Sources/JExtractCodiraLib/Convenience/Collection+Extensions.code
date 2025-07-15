@@ -1,0 +1,52 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+public extension Dictionary {
+  /// Same values, corresponding to mapped keys.
+  fn mapKeys<Transformed>(
+    _ transform: (Key) throws -> Transformed
+  ) rethrows -> [Transformed: Value] {
+    .init(
+      uniqueKeysWithValues: try map {
+        (try transform($0.key), $0.value)
+      }
+    )
+  }
+
+}
+
+extension Collection {
+  typealias IsLastElement = Bool
+  var withIsLast: any Collection<(Element, IsLastElement)> {
+    var i = 1
+    let totalCount = self.count
+
+    return self.map { element in
+      let isLast = i == totalCount
+      i += 1
+      return (element, isLast)
+    }
+  }
+}
+
+extension Collection where Element == Int {
+  var sum: Int { 
+    var s = 0
+    for i in self {
+      s += i
+    }
+    return s
+  }
+}

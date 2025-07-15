@@ -1,0 +1,56 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import JavaKit
+import JavaKitFunction
+import JavaKitIO
+import JavaKitConfigurationShared
+import Foundation
+
+// Import the commons-csv library wrapper:
+import JavaCommonsCSV
+
+print("")
+print("")
+print("-----------------------------------------------------------------------")
+print("Start Sample app...")
+
+// TODO: locating the classpath is more complex, need to account for dependencies of our module
+let swiftJavaClasspath = findSwiftJavaClasspaths() // scans for .classpath files
+
+// 1) Start a JVM with appropriate classpath
+let jvm = try JavaVirtualMachine.shared(classpath: swiftJavaClasspath)
+
+// 2) Get the FilenameUtils Java class so we can call the static methods on it
+let FilenameUtilsClass = try JavaClass<FilenameUtils>()
+
+// Some silly sample path we want to work with:
+let path = "/example/path/executable.exe"
+print("Path = \(path)")
+
+let ext = try! FilenameUtilsClass.getExtension(path)
+print("org.apache.commons.io.FilenameUtils.getExtension = \(ext)")
+precondition(ext == "exe")
+
+let CSVFormatClass = try JavaClass<CSVFormat>()
+
+let reader = StringReader("hello,example")
+for record in try CSVFormatClass.RFC4180.parse(reader)!.getRecords()! {
+  for field in record.toList()! {
+    print("Field: \(field)")
+  }
+}
+
+print("Done.")

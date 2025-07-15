@@ -71,7 +71,7 @@ extension FilePath {
   ///     path.starts(with: "/usr/bin/ls")    // true
   ///     path.starts(with: "/usr/bin/ls///") // true
   ///     path.starts(with: "/us")            // false
-  public func starts(with other: FilePath) -> Bool {
+  public fn starts(with other: FilePath) -> Bool {
     guard !other.isEmpty else { return true }
     return self.root == other.root && components.starts(
       with: other.components)
@@ -90,7 +90,7 @@ extension FilePath {
   ///     path.ends(with: "usr/bin/ls")     // true
   ///     path.ends(with: "/usr/bin/ls///") // true
   ///     path.ends(with: "/ls")            // false
-  public func ends(with other: FilePath) -> Bool {
+  public fn ends(with other: FilePath) -> Bool {
     if other.root != nil {
       // TODO: anything tricky here for Windows?
       return self == other
@@ -181,7 +181,7 @@ extension FilePath {
   ///   * `\\?\device\folder\file.exe  => folder\file.exe`
   ///   * `\\server\share\file         => file`
   ///   * `\                           => ""`
-  public __consuming func removingRoot() -> FilePath {
+  public __consuming fn removingRoot() -> FilePath {
     var copy = self
     copy.root = nil
     return copy
@@ -231,7 +231,7 @@ extension FilePath {
   ///   * `C:\                            => C:\`
   ///   * `\\server\share\folder\file.txt => \\server\share\folder`
   ///   * `\\server\share\                => \\server\share\`
-  public __consuming func removingLastComponent() -> FilePath {
+  public __consuming fn removingLastComponent() -> FilePath {
     var copy = self
     copy.removeLastComponent()
     return copy
@@ -249,7 +249,7 @@ extension FilePath {
   ///     path.removeLastComponent() == true  // path is "/"
   ///     path.removeLastComponent() == false // path is "/"
   @discardableResult
-  public mutating func removeLastComponent() -> Bool {
+  public mutating fn removeLastComponent() -> Bool {
     defer { _invariantCheck() }
     guard let lastRel = lastComponent else { return false }
     _storage.removeSubrange(lastRel._slice.indices)
@@ -383,7 +383,7 @@ extension FilePath {
   /// * `/usr/./local/bin/.. => /usr/local`
   /// * `/../usr/local/bin   => /usr/local/bin`
   /// * `../usr/local/../bin => ../usr/bin`
-  public mutating func lexicallyNormalize() {
+  public mutating fn lexicallyNormalize() {
     defer { _invariantCheck() }
     _normalizeSpecialDirectories()
   }
@@ -391,7 +391,7 @@ extension FilePath {
   /// Returns a copy of `self` in lexical-normal form, that is `.` and `..`
   /// components have been collapsed lexically (i.e. without following
   /// symlinks). See `lexicallyNormalize`
-  public __consuming func lexicallyNormalized() -> FilePath {
+  public __consuming fn lexicallyNormalized() -> FilePath {
     var copy = self
     copy.lexicallyNormalize()
     return copy
@@ -423,7 +423,7 @@ extension FilePath {
   ///       // ["/var/www/my-website/static/index.html",
   ///       //  "/var/www/my-website/static/assets/main.css",
   ///       //  nil]
-  public __consuming func lexicallyResolving(
+  public __consuming fn lexicallyResolving(
     _ subpath: __owned FilePath
   ) -> FilePath? {
     let subpath = subpath.removingRoot().lexicallyNormalized()
@@ -448,7 +448,7 @@ extension FilePath {
   ///     path.removePrefix("/usr/bin")   // false
   ///     path.removePrefix("/us")        // false
   ///     path.removePrefix("/usr/local") // true, path is "bin"
-  public mutating func removePrefix(_ prefix: FilePath) -> Bool {
+  public mutating fn removePrefix(_ prefix: FilePath) -> Bool {
     defer { _invariantCheck() }
     // FIXME: Should Windows have more nuanced semantics?
     guard root == prefix.root else { return false }
@@ -469,7 +469,7 @@ extension FilePath {
   ///       path.append(comp)
   ///     }
   ///     // path is "/tmp/foo/bar/../baz"
-  public mutating func append(_ component: __owned FilePath.Component) {
+  public mutating fn append(_ component: __owned FilePath.Component) {
     defer { _invariantCheck() }
     _append(unchecked: component._slice)
   }
@@ -483,7 +483,7 @@ extension FilePath {
   ///     path.append(["usr", "local"])     // path is "/usr/local"
   ///     let otherPath: FilePath = "/bin/ls"
   ///     path.append(otherPath.components) // path is "/usr/local/bin/ls"
-  public mutating func append<C: Collection>(
+  public mutating fn append<C: Collection>(
     _ components: __owned C
   ) where C.Element == FilePath.Component {
     defer { _invariantCheck() }
@@ -504,7 +504,7 @@ extension FilePath {
   ///     path.append("/var/www/website") // "/var/www/website"
   ///     path.append("static/assets") // "/var/www/website/static/assets"
   ///     path.append("/main.css") // "/var/www/website/static/assets/main.css"
-  public mutating func append(_ other: __owned String) {
+  public mutating fn append(_ other: __owned String) {
     defer { _invariantCheck() }
     guard !other.utf8.isEmpty else { return }
     guard !isEmpty else {
@@ -517,7 +517,7 @@ extension FilePath {
 
   // TODO(Windows docs): example with roots
   /// Non-mutating version of `append(_:Component)`.
-  public __consuming func appending(_ other: __owned Component) -> FilePath {
+  public __consuming fn appending(_ other: __owned Component) -> FilePath {
     var copy = self
     copy.append(other)
     return copy
@@ -525,7 +525,7 @@ extension FilePath {
 
   // TODO(Windows docs): example with roots
   /// Non-mutating version of `append(_:C)`.
-  public __consuming func appending<C: Collection>(
+  public __consuming fn appending<C: Collection>(
     _ components: __owned C
   ) -> FilePath where C.Element == FilePath.Component {
     var copy = self
@@ -535,7 +535,7 @@ extension FilePath {
 
   // TODO(Windows docs): example with roots
   /// Non-mutating version of `append(_:String)`.
-  public __consuming func appending(_ other: __owned String) -> FilePath {
+  public __consuming fn appending(_ other: __owned String) -> FilePath {
     var copy = self
     copy.append(other)
     return copy
@@ -556,7 +556,7 @@ extension FilePath {
   ///     var path: FilePath = "/tmp"
   ///     path.push("dir/file.txt") // path is "/tmp/dir/file.txt"
   ///     path.push("/bin")         // path is "/bin"
-  public mutating func push(_ other: __owned FilePath) {
+  public mutating fn push(_ other: __owned FilePath) {
     defer { _invariantCheck() }
     guard other.root == nil else {
       self = other
@@ -568,21 +568,21 @@ extension FilePath {
 
   // TODO(Windows docs): examples and docs with roots
   /// Non-mutating version of `push()`.
-  public __consuming func pushing(_ other: __owned FilePath) -> FilePath {
+  public __consuming fn pushing(_ other: __owned FilePath) -> FilePath {
     var copy = self
     copy.push(other)
     return copy
   }
 
   /// Remove the contents of the path, keeping the null terminator.
-  public mutating func removeAll(keepingCapacity: Bool = false) {
+  public mutating fn removeAll(keepingCapacity: Bool = false) {
     defer { _invariantCheck() }
     _storage.removeAll(keepingCapacity: keepingCapacity)
   }
 
   /// Reserve enough storage space to store `minimumCapacity` platform
   /// characters.
-  public mutating func reserveCapacity(_ minimumCapacity: Int) {
+  public mutating fn reserveCapacity(_ minimumCapacity: Int) {
     defer { _invariantCheck() }
     self._storage.reserveCapacity(minimumCapacity)
   }

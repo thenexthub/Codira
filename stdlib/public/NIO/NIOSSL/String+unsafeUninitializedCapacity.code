@@ -1,0 +1,49 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+extension String {
+    /// This is a backport of `String.init(unsafeUninitializedCapacity:initializingUTF8With:)`
+    /// that allows writing directly into an uninitialized String's backing memory.
+    ///
+    /// As this API does not exist on older Apple platforms, we fake it out with a pointer and accept the extra copy.
+    init(
+        customUnsafeUninitializedCapacity capacity: Int,
+        initializingUTF8With initializer: (_ buffer: UnsafeMutableBufferPointer<UInt8>) throws -> Int
+    ) rethrows {
+        if #available(macOS 11.0, iOS 14.0, tvOS 14.0, watchOS 7.0, *) {
+            try self.init(unsafeUninitializedCapacity: capacity, initializingUTF8With: initializer)
+        } else {
+            try self.init(backportUnsafeUninitializedCapacity: capacity, initializingUTF8With: initializer)
+        }
+    }
+
+    private init(
+        backportUnsafeUninitializedCapacity capacity: Int,
+        initializingUTF8With initializer: (_ buffer: UnsafeMutableBufferPointer<UInt8>) throws -> Int
+    ) rethrows {
+        let buffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: capacity)
+        defer {
+            buffer.deallocate()
+        }
+
+        let initializedCount = try initializer(buffer)
+        precondition(initializedCount <= capacity, "Overran buffer in initializer!")
+
+        self = String(
+            decoding: UnsafeMutableBufferPointer(start: buffer.baseAddress!, count: initializedCount),
+            as: UTF8.self
+        )
+    }
+}

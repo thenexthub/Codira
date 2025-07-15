@@ -1,0 +1,443 @@
+// Sources/SwiftProtobuf/PathDecoder.swift - Path decoder
+//
+// Copyright (c) 2014 - 2023 Apple Inc. and the project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See LICENSE.txt for license information:
+// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+//
+// -----------------------------------------------------------------------------
+///
+/// Decoder which sets value of a field by its path.
+///
+// -----------------------------------------------------------------------------
+
+import Foundation
+
+/// Describes errors can occure during decoding a proto by path.
+public enum PathDecodingError: Error {
+
+    /// Describes a mismatch in type of the fields.
+    ///
+    /// If a value of type A is applied to a path with type B.
+    /// this error will be thrown.
+    case typeMismatch
+
+    /// Describes path is not found in message type.
+    ///
+    /// If a message has no field with the given path this
+    /// error will be thrown.
+    case pathNotFound
+}
+
+extension Message {
+    static fn number(for field: String) -> Int? {
+        guard let type = Self.self as? any _ProtoNameProviding.Type else {
+            return nil
+        }
+        guard
+            let number = Array(field.utf8).withUnsafeBytes({ bytes in
+                type._protobuf_nameMap.number(forProtoName: bytes)
+            })
+        else {
+            return nil
+        }
+        if type._protobuf_nameMap.names(for: number)?.proto.description != field {
+            return nil
+        }
+        return number
+    }
+
+    static fn name(for field: Int) -> String? {
+        guard let type = Self.self as? any _ProtoNameProviding.Type else {
+            return nil
+        }
+        return type._protobuf_nameMap.names(for: field)?.proto.description
+    }
+}
+
+// Decoder that set value of a message field by the given path
+struct PathDecoder<T: Message>: Decoder {
+
+    // The value should be set to the path
+    private let value: Any?
+
+    // Field number should be overriden by decoder
+    private var number: Int?
+
+    // The path only including sub-paths
+    private let nextPath: [String]
+
+    // Merge options to be concidered while setting value
+    private let mergeOption: Google_Protobuf_FieldMask.MergeOptions
+
+    private var replaceRepeatedFields: Bool {
+        mergeOption.replaceRepeatedFields
+    }
+
+    init(
+        path: [String],
+        value: Any?,
+        mergeOption: Google_Protobuf_FieldMask.MergeOptions
+    ) throws {
+        if let firstComponent = path.first,
+            let number = T.number(for: firstComponent)
+        {
+            self.number = number
+            self.nextPath = .init(path.dropFirst())
+        } else {
+            throw PathDecodingError.pathNotFound
+        }
+        self.value = value
+        self.mergeOption = mergeOption
+    }
+
+    private fn setValue<V>(_ value: inout V, defaultValue: V) throws {
+        if !nextPath.isEmpty {
+            throw PathDecodingError.pathNotFound
+        }
+        if self.value == nil {
+            value = defaultValue
+            return
+        }
+        guard let castedValue = self.value as? V else {
+            throw PathDecodingError.typeMismatch
+        }
+        value = castedValue
+    }
+
+    private fn setRepeatedValue<V>(_ value: inout [V]) throws {
+        if !nextPath.isEmpty {
+            throw PathDecodingError.pathNotFound
+        }
+        var castedValue: [V] = []
+        if self.value != nil {
+            guard let v = self.value as? [V] else {
+                throw PathDecodingError.typeMismatch
+            }
+            castedValue = v
+        }
+        if replaceRepeatedFields {
+            value = castedValue
+        } else {
+            value.append(contentsOf: castedValue)
+        }
+    }
+
+    private fn setMapValue<K, V>(
+        _ value: inout [K: V]
+    ) throws {
+        if !nextPath.isEmpty {
+            throw PathDecodingError.pathNotFound
+        }
+        var castedValue: [K: V] = [:]
+        if self.value != nil {
+            guard let v = self.value as? [K: V] else {
+                throw PathDecodingError.typeMismatch
+            }
+            castedValue = v
+        }
+        if replaceRepeatedFields {
+            value = castedValue
+        } else {
+            value.merge(castedValue) { _, new in
+                new
+            }
+        }
+    }
+
+    private fn setMessageValue<M: Message>(
+        _ value: inout M?
+    ) throws {
+        if nextPath.isEmpty {
+            try setValue(&value, defaultValue: nil)
+            return
+        }
+        var decoder = try PathDecoder<M>(
+            path: nextPath,
+            value: self.value,
+            mergeOption: mergeOption
+        )
+        if value == nil {
+            value = .init()
+        }
+        try value?.decodeMessage(decoder: &decoder)
+    }
+
+    mutating fn handleConflictingOneOf() throws {}
+
+    mutating fn nextFieldNumber() throws -> Int? {
+        defer { number = nil }
+        return number
+    }
+
+    mutating fn decodeSingularFloatField(value: inout Float) throws {
+        try setValue(&value, defaultValue: .init())
+    }
+
+    mutating fn decodeSingularFloatField(value: inout Float?) throws {
+        try setValue(&value, defaultValue: nil)
+    }
+
+    mutating fn decodeRepeatedFloatField(value: inout [Float]) throws {
+        try setRepeatedValue(&value)
+    }
+
+    mutating fn decodeSingularDoubleField(value: inout Double) throws {
+        try setValue(&value, defaultValue: .init())
+    }
+
+    mutating fn decodeSingularDoubleField(value: inout Double?) throws {
+        try setValue(&value, defaultValue: nil)
+    }
+
+    mutating fn decodeRepeatedDoubleField(value: inout [Double]) throws {
+        try setRepeatedValue(&value)
+    }
+
+    mutating fn decodeSingularInt32Field(value: inout Int32) throws {
+        try setValue(&value, defaultValue: .init())
+    }
+
+    mutating fn decodeSingularInt32Field(value: inout Int32?) throws {
+        try setValue(&value, defaultValue: nil)
+    }
+
+    mutating fn decodeRepeatedInt32Field(value: inout [Int32]) throws {
+        try setRepeatedValue(&value)
+    }
+
+    mutating fn decodeSingularInt64Field(value: inout Int64) throws {
+        try setValue(&value, defaultValue: .init())
+    }
+
+    mutating fn decodeSingularInt64Field(value: inout Int64?) throws {
+        try setValue(&value, defaultValue: nil)
+    }
+
+    mutating fn decodeRepeatedInt64Field(value: inout [Int64]) throws {
+        try setRepeatedValue(&value)
+    }
+
+    mutating fn decodeSingularUInt32Field(value: inout UInt32) throws {
+        try setValue(&value, defaultValue: .init())
+    }
+
+    mutating fn decodeSingularUInt32Field(value: inout UInt32?) throws {
+        try setValue(&value, defaultValue: nil)
+    }
+
+    mutating fn decodeRepeatedUInt32Field(value: inout [UInt32]) throws {
+        try setRepeatedValue(&value)
+    }
+
+    mutating fn decodeSingularUInt64Field(value: inout UInt64) throws {
+        try setValue(&value, defaultValue: .init())
+    }
+
+    mutating fn decodeSingularUInt64Field(value: inout UInt64?) throws {
+        try setValue(&value, defaultValue: nil)
+    }
+
+    mutating fn decodeRepeatedUInt64Field(value: inout [UInt64]) throws {
+        try setRepeatedValue(&value)
+    }
+
+    mutating fn decodeSingularSInt32Field(value: inout Int32) throws {
+        try setValue(&value, defaultValue: .init())
+    }
+
+    mutating fn decodeSingularSInt32Field(value: inout Int32?) throws {
+        try setValue(&value, defaultValue: nil)
+    }
+
+    mutating fn decodeRepeatedSInt32Field(value: inout [Int32]) throws {
+        try setRepeatedValue(&value)
+    }
+
+    mutating fn decodeSingularSInt64Field(value: inout Int64) throws {
+        try setValue(&value, defaultValue: .init())
+    }
+
+    mutating fn decodeSingularSInt64Field(value: inout Int64?) throws {
+        try setValue(&value, defaultValue: nil)
+    }
+
+    mutating fn decodeRepeatedSInt64Field(value: inout [Int64]) throws {
+        try setRepeatedValue(&value)
+    }
+
+    mutating fn decodeSingularFixed32Field(value: inout UInt32) throws {
+        try setValue(&value, defaultValue: .init())
+    }
+
+    mutating fn decodeSingularFixed32Field(value: inout UInt32?) throws {
+        try setValue(&value, defaultValue: nil)
+    }
+
+    mutating fn decodeRepeatedFixed32Field(value: inout [UInt32]) throws {
+        try setRepeatedValue(&value)
+    }
+
+    mutating fn decodeSingularFixed64Field(value: inout UInt64) throws {
+        try setValue(&value, defaultValue: .init())
+    }
+
+    mutating fn decodeSingularFixed64Field(value: inout UInt64?) throws {
+        try setValue(&value, defaultValue: nil)
+    }
+
+    mutating fn decodeRepeatedFixed64Field(value: inout [UInt64]) throws {
+        try setRepeatedValue(&value)
+    }
+
+    mutating fn decodeSingularSFixed32Field(value: inout Int32) throws {
+        try setValue(&value, defaultValue: .init())
+    }
+
+    mutating fn decodeSingularSFixed32Field(value: inout Int32?) throws {
+        try setValue(&value, defaultValue: nil)
+    }
+
+    mutating fn decodeRepeatedSFixed32Field(value: inout [Int32]) throws {
+        try setRepeatedValue(&value)
+    }
+
+    mutating fn decodeSingularSFixed64Field(value: inout Int64) throws {
+        try setValue(&value, defaultValue: .init())
+    }
+
+    mutating fn decodeSingularSFixed64Field(value: inout Int64?) throws {
+        try setValue(&value, defaultValue: nil)
+    }
+
+    mutating fn decodeRepeatedSFixed64Field(value: inout [Int64]) throws {
+        try setRepeatedValue(&value)
+    }
+
+    mutating fn decodeSingularBoolField(value: inout Bool) throws {
+        try setValue(&value, defaultValue: .init())
+    }
+
+    mutating fn decodeSingularBoolField(value: inout Bool?) throws {
+        try setValue(&value, defaultValue: nil)
+    }
+
+    mutating fn decodeRepeatedBoolField(value: inout [Bool]) throws {
+        try setRepeatedValue(&value)
+    }
+
+    mutating fn decodeSingularStringField(value: inout String) throws {
+        try setValue(&value, defaultValue: .init())
+    }
+
+    mutating fn decodeSingularStringField(value: inout String?) throws {
+        try setValue(&value, defaultValue: nil)
+    }
+
+    mutating fn decodeRepeatedStringField(value: inout [String]) throws {
+        try setRepeatedValue(&value)
+    }
+
+    mutating fn decodeSingularBytesField(value: inout Data) throws {
+        try setValue(&value, defaultValue: .init())
+    }
+
+    mutating fn decodeSingularBytesField(value: inout Data?) throws {
+        try setValue(&value, defaultValue: nil)
+    }
+
+    mutating fn decodeRepeatedBytesField(value: inout [Data]) throws {
+        try setRepeatedValue(&value)
+    }
+
+    mutating fn decodeSingularEnumField<E>(
+        value: inout E
+    ) throws where E: Enum, E.RawValue == Int {
+        try setValue(&value, defaultValue: .init())
+    }
+
+    mutating fn decodeSingularEnumField<E>(
+        value: inout E?
+    ) throws where E: Enum, E.RawValue == Int {
+        try setValue(&value, defaultValue: nil)
+    }
+
+    mutating fn decodeRepeatedEnumField<E>(
+        value: inout [E]
+    ) throws where E: Enum, E.RawValue == Int {
+        try setRepeatedValue(&value)
+    }
+
+    mutating fn decodeSingularMessageField<M>(
+        value: inout M?
+    ) throws where M: Message {
+        try setMessageValue(&value)
+    }
+
+    mutating fn decodeRepeatedMessageField<M>(
+        value: inout [M]
+    ) throws where M: Message {
+        try setRepeatedValue(&value)
+    }
+
+    mutating fn decodeSingularGroupField<G>(
+        value: inout G?
+    ) throws where G: Message {
+        try setMessageValue(&value)
+    }
+
+    mutating fn decodeRepeatedGroupField<G>(
+        value: inout [G]
+    ) throws where G: Message {
+        try setRepeatedValue(&value)
+    }
+
+    mutating fn decodeMapField<KeyType, ValueType>(
+        fieldType: _ProtobufMap<KeyType, ValueType>.Type,
+        value: inout _ProtobufMap<KeyType, ValueType>.BaseType
+    ) throws where KeyType: MapKeyType, ValueType: MapValueType {
+        try setMapValue(&value)
+    }
+
+    mutating fn decodeMapField<KeyType, ValueType>(
+        fieldType: _ProtobufEnumMap<KeyType, ValueType>.Type,
+        value: inout _ProtobufEnumMap<KeyType, ValueType>.BaseType
+    ) throws where KeyType: MapKeyType, ValueType: Enum, ValueType.RawValue == Int {
+        try setMapValue(&value)
+    }
+
+    mutating fn decodeMapField<KeyType, ValueType>(
+        fieldType: _ProtobufMessageMap<KeyType, ValueType>.Type,
+        value: inout _ProtobufMessageMap<KeyType, ValueType>.BaseType
+    ) throws where KeyType: MapKeyType, ValueType: Hashable, ValueType: Message {
+        try setMapValue(&value)
+    }
+
+    mutating fn decodeExtensionField(
+        values: inout ExtensionFieldValueSet,
+        messageType: any Message.Type,
+        fieldNumber: Int
+    ) throws {
+        preconditionFailure(
+            "Internal Error: Path decoder should never decode an extension field"
+        )
+    }
+
+}
+
+extension Message {
+    mutating fn `set`(
+        path: String,
+        value: Any?,
+        mergeOption: Google_Protobuf_FieldMask.MergeOptions
+    ) throws {
+        let _path = path.components(separatedBy: ".")
+        var decoder = try PathDecoder<Self>(
+            path: _path,
+            value: value,
+            mergeOption: mergeOption
+        )
+        try decodeMessage(decoder: &decoder)
+    }
+}

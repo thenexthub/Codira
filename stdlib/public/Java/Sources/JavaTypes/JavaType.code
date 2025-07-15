@@ -1,0 +1,60 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// Describes the Java type system.
+public enum JavaType: Equatable, Hashable {
+  case boolean
+  case byte
+  case char
+  case short
+  case int
+  case long
+  case float
+  case double
+  case void
+
+  /// A Java class separated into its package (e.g., "java.lang") and class name
+  /// (e.g., "Object")
+  case `class`(package: String?, name: String)
+
+  /// A Java array.
+  indirect case array(JavaType)
+
+  /// Given a class name such as "java.lang.Object", split it into
+  /// its package and class name to form a class instance.
+  public init(className name: some StringProtocol) {
+    if let lastDot = name.lastIndex(of: ".") {
+      self = .class(
+        package: String(name[..<lastDot]),
+        name: String(name[name.index(after: lastDot)...])
+      )
+    } else {
+      self = .class(package: nil, name: String(name))
+    }
+  }
+}
+
+extension JavaType {
+  /// Whether this is a primitive Java type.
+  public var isPrimitive: Bool {
+    switch self {
+    case .boolean, .byte, .char, .short, .int, .long, .float, .double, .void:
+      true
+
+    case .class, .array:
+      false
+    }
+  }
+}

@@ -1,0 +1,38 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import NIOCore
+
+// 'any Error' is unconditionally boxed, avoid allocating per use by statically boxing them.
+extension ChannelError {
+    static let _alreadyClosed: any Error = ChannelError.alreadyClosed
+    static let _badInterfaceAddressFamily: any Error = ChannelError.badInterfaceAddressFamily
+    static let _badMulticastGroupAddressFamily: any Error = ChannelError.badMulticastGroupAddressFamily
+    static let _connectPending: any Error = ChannelError.connectPending
+    static let _eof: any Error = ChannelError.eof
+    static let _inappropriateOperationForState: any Error = ChannelError.inappropriateOperationForState
+    static let _inputClosed: any Error = ChannelError.inputClosed
+    static let _ioOnClosedChannel: any Error = ChannelError.ioOnClosedChannel
+    static let _operationUnsupported: any Error = ChannelError.operationUnsupported
+    static let _outputClosed: any Error = ChannelError.outputClosed
+    static let _unknownLocalAddress: any Error = ChannelError.unknownLocalAddress
+    static let _writeHostUnreachable: any Error = ChannelError.writeHostUnreachable
+    static let _writeMessageTooLarge: any Error = ChannelError.writeMessageTooLarge
+}
+
+extension EventLoopError {
+    static let _shutdown: any Error = EventLoopError.shutdown
+    static let _unsupportedOperation: any Error = EventLoopError.unsupportedOperation
+}

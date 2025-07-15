@@ -1,0 +1,53 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+extension TimeAmount {
+    @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
+    /// Creates a new `TimeAmount` for the given `Duration`, truncating and clamping if necessary.
+    ///
+    /// - Returns: `TimeAmount`, truncated to nanosecond precision, and clamped to `Int64.max` nanoseconds.
+    public init(_ duration: Swift.Duration) {
+        self = .nanoseconds(duration.nanosecondsClamped)
+    }
+}
+
+@available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
+extension Swift.Duration {
+    /// Construct a `Duration` given a number of nanoseconds represented as a `TimeAmount`.
+    public init(_ timeAmount: TimeAmount) {
+        self = .nanoseconds(timeAmount.nanoseconds)
+    }
+}
+
+@available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
+extension Swift.Duration {
+    /// The duration represented as nanoseconds, clamped to maximum expressible value.
+    var nanosecondsClamped: Int64 {
+        let components = self.components
+
+        let secondsComponentNanos = components.seconds.multipliedReportingOverflow(by: 1_000_000_000)
+        let attosCompononentNanos = components.attoseconds / 1_000_000_000
+        let combinedNanos = secondsComponentNanos.partialValue.addingReportingOverflow(attosCompononentNanos)
+
+        guard
+            !secondsComponentNanos.overflow,
+            !combinedNanos.overflow
+        else {
+            return .max
+        }
+
+        return combinedNanos.partialValue
+    }
+}

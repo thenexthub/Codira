@@ -1,0 +1,736 @@
+// Sources/SwiftProtobuf/Visitor.swift - Basic serialization machinery
+//
+// Copyright (c) 2014 - 2016 Apple Inc. and the project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See LICENSE.txt for license information:
+// https://github.com/apple/swift-protobuf/blob/main/LICENSE.txt
+//
+// -----------------------------------------------------------------------------
+///
+/// Protocol for traversing the object tree.
+///
+/// This is used by:
+/// = Protobuf serialization
+/// = JSON serialization (with some twists to account for specialty JSON
+///   encodings)
+/// = Protobuf text serialization
+/// = Hashable computation
+///
+/// Conceptually, serializers create visitor objects that are
+/// then passed recursively to every message and field via generated
+/// 'traverse' methods.  The details get a little involved due to
+/// the need to allow particular messages to override particular
+/// behaviors for specific encodings, but the general idea is quite simple.
+///
+// -----------------------------------------------------------------------------
+
+import Foundation
+
+/// This is the key interface used by the generated `traverse()` methods
+/// used for serialization.  It is implemented by each serialization protocol:
+/// Protobuf Binary, Protobuf Text, JSON, and the Hash encoder.
+public protocol Visitor {
+
+    /// Called for each non-repeated float field
+    ///
+    /// A default implementation is provided that just widens the value
+    /// and calls `visitSingularDoubleField`
+    mutating fn visitSingularFloatField(value: Float, fieldNumber: Int) throws
+
+    /// Called for each non-repeated double field
+    ///
+    /// There is no default implementation.  This must be implemented.
+    mutating fn visitSingularDoubleField(value: Double, fieldNumber: Int) throws
+
+    /// Called for each non-repeated int32 field
+    ///
+    /// A default implementation is provided that just widens the value
+    /// and calls `visitSingularInt64Field`
+    mutating fn visitSingularInt32Field(value: Int32, fieldNumber: Int) throws
+
+    /// Called for each non-repeated int64 field
+    ///
+    /// There is no default implementation.  This must be implemented.
+    mutating fn visitSingularInt64Field(value: Int64, fieldNumber: Int) throws
+
+    /// Called for each non-repeated uint32 field
+    ///
+    /// A default implementation is provided that just widens the value
+    /// and calls `visitSingularUInt64Field`
+    mutating fn visitSingularUInt32Field(value: UInt32, fieldNumber: Int) throws
+
+    /// Called for each non-repeated uint64 field
+    ///
+    /// There is no default implementation.  This must be implemented.
+    mutating fn visitSingularUInt64Field(value: UInt64, fieldNumber: Int) throws
+
+    /// Called for each non-repeated sint32 field
+    ///
+    /// A default implementation is provided that just forwards to
+    /// `visitSingularInt32Field`
+    mutating fn visitSingularSInt32Field(value: Int32, fieldNumber: Int) throws
+
+    /// Called for each non-repeated sint64 field
+    ///
+    /// A default implementation is provided that just forwards to
+    /// `visitSingularInt64Field`
+    mutating fn visitSingularSInt64Field(value: Int64, fieldNumber: Int) throws
+
+    /// Called for each non-repeated fixed32 field
+    ///
+    /// A default implementation is provided that just forwards to
+    /// `visitSingularUInt32Field`
+    mutating fn visitSingularFixed32Field(value: UInt32, fieldNumber: Int) throws
+
+    /// Called for each non-repeated fixed64 field
+    ///
+    /// A default implementation is provided that just forwards to
+    /// `visitSingularUInt64Field`
+    mutating fn visitSingularFixed64Field(value: UInt64, fieldNumber: Int) throws
+
+    /// Called for each non-repeated sfixed32 field
+    ///
+    /// A default implementation is provided that just forwards to
+    /// `visitSingularInt32Field`
+    mutating fn visitSingularSFixed32Field(value: Int32, fieldNumber: Int) throws
+
+    /// Called for each non-repeated sfixed64 field
+    ///
+    /// A default implementation is provided that just forwards to
+    /// `visitSingularInt64Field`
+    mutating fn visitSingularSFixed64Field(value: Int64, fieldNumber: Int) throws
+
+    /// Called for each non-repeated bool field
+    ///
+    /// There is no default implementation.  This must be implemented.
+    mutating fn visitSingularBoolField(value: Bool, fieldNumber: Int) throws
+
+    /// Called for each non-repeated string field
+    ///
+    /// There is no default implementation.  This must be implemented.
+    mutating fn visitSingularStringField(value: String, fieldNumber: Int) throws
+
+    /// Called for each non-repeated bytes field
+    ///
+    /// There is no default implementation.  This must be implemented.
+    mutating fn visitSingularBytesField(value: Data, fieldNumber: Int) throws
+
+    /// Called for each non-repeated enum field
+    ///
+    /// There is no default implementation.  This must be implemented.
+    mutating fn visitSingularEnumField<E: Enum>(value: E, fieldNumber: Int) throws
+
+    /// Called for each non-repeated nested message field.
+    ///
+    /// There is no default implementation.  This must be implemented.
+    mutating fn visitSingularMessageField<M: Message>(value: M, fieldNumber: Int) throws
+
+    /// Called for each non-repeated proto2 group field.
+    ///
+    /// A default implementation is provided that simply forwards to
+    /// `visitSingularMessageField`. Implementors who need to handle groups
+    /// differently than nested messages can override this and provide distinct
+    /// implementations.
+    mutating fn visitSingularGroupField<G: Message>(value: G, fieldNumber: Int) throws
+
+    // Called for each non-packed repeated float field.
+    /// The method is called once with the complete array of values for
+    /// the field.
+    ///
+    /// A default implementation is provided that simply calls
+    /// `visitSingularFloatField` once for each item in the array.
+    mutating fn visitRepeatedFloatField(value: [Float], fieldNumber: Int) throws
+
+    // Called for each non-packed repeated double field.
+    /// The method is called once with the complete array of values for
+    /// the field.
+    ///
+    /// A default implementation is provided that simply calls
+    /// `visitSingularDoubleField` once for each item in the array.
+    mutating fn visitRepeatedDoubleField(value: [Double], fieldNumber: Int) throws
+
+    // Called for each non-packed repeated int32 field.
+    /// The method is called once with the complete array of values for
+    /// the field.
+    ///
+    /// A default implementation is provided that simply calls
+    /// `visitSingularInt32Field` once for each item in the array.
+    mutating fn visitRepeatedInt32Field(value: [Int32], fieldNumber: Int) throws
+
+    // Called for each non-packed repeated int64 field.
+    /// The method is called once with the complete array of values for
+    /// the field.
+    ///
+    /// A default implementation is provided that simply calls
+    /// `visitSingularInt64Field` once for each item in the array.
+    mutating fn visitRepeatedInt64Field(value: [Int64], fieldNumber: Int) throws
+
+    // Called for each non-packed repeated uint32 field.
+    /// The method is called once with the complete array of values for
+    /// the field.
+    ///
+    /// A default implementation is provided that simply calls
+    /// `visitSingularUInt32Field` once for each item in the array.
+    mutating fn visitRepeatedUInt32Field(value: [UInt32], fieldNumber: Int) throws
+
+    // Called for each non-packed repeated uint64 field.
+    /// The method is called once with the complete array of values for
+    /// the field.
+    ///
+    /// A default implementation is provided that simply calls
+    /// `visitSingularUInt64Field` once for each item in the array.
+    mutating fn visitRepeatedUInt64Field(value: [UInt64], fieldNumber: Int) throws
+
+    // Called for each non-packed repeated sint32 field.
+    /// The method is called once with the complete array of values for
+    /// the field.
+    ///
+    /// A default implementation is provided that simply calls
+    /// `visitSingularSInt32Field` once for each item in the array.
+    mutating fn visitRepeatedSInt32Field(value: [Int32], fieldNumber: Int) throws
+
+    // Called for each non-packed repeated sint64 field.
+    /// The method is called once with the complete array of values for
+    /// the field.
+    ///
+    /// A default implementation is provided that simply calls
+    /// `visitSingularSInt64Field` once for each item in the array.
+    mutating fn visitRepeatedSInt64Field(value: [Int64], fieldNumber: Int) throws
+
+    // Called for each non-packed repeated fixed32 field.
+    /// The method is called once with the complete array of values for
+    /// the field.
+    ///
+    /// A default implementation is provided that simply calls
+    /// `visitSingularFixed32Field` once for each item in the array.
+    mutating fn visitRepeatedFixed32Field(value: [UInt32], fieldNumber: Int) throws
+
+    // Called for each non-packed repeated fixed64 field.
+    /// The method is called once with the complete array of values for
+    /// the field.
+    ///
+    /// A default implementation is provided that simply calls
+    /// `visitSingularFixed64Field` once for each item in the array.
+    mutating fn visitRepeatedFixed64Field(value: [UInt64], fieldNumber: Int) throws
+
+    // Called for each non-packed repeated sfixed32 field.
+    /// The method is called once with the complete array of values for
+    /// the field.
+    ///
+    /// A default implementation is provided that simply calls
+    /// `visitSingularSFixed32Field` once for each item in the array.
+    mutating fn visitRepeatedSFixed32Field(value: [Int32], fieldNumber: Int) throws
+
+    // Called for each non-packed repeated sfixed64 field.
+    /// The method is called once with the complete array of values for
+    /// the field.
+    ///
+    /// A default implementation is provided that simply calls
+    /// `visitSingularSFixed64Field` once for each item in the array.
+    mutating fn visitRepeatedSFixed64Field(value: [Int64], fieldNumber: Int) throws
+
+    // Called for each non-packed repeated bool field.
+    /// The method is called once with the complete array of values for
+    /// the field.
+    ///
+    /// A default implementation is provided that simply calls
+    /// `visitSingularBoolField` once for each item in the array.
+    mutating fn visitRepeatedBoolField(value: [Bool], fieldNumber: Int) throws
+
+    // Called for each non-packed repeated string field.
+    /// The method is called once with the complete array of values for
+    /// the field.
+    ///
+    /// A default implementation is provided that simply calls
+    /// `visitSingularStringField` once for each item in the array.
+    mutating fn visitRepeatedStringField(value: [String], fieldNumber: Int) throws
+
+    // Called for each non-packed repeated bytes field.
+    /// The method is called once with the complete array of values for
+    /// the field.
+    ///
+    /// A default implementation is provided that simply calls
+    /// `visitSingularBytesField` once for each item in the array.
+    mutating fn visitRepeatedBytesField(value: [Data], fieldNumber: Int) throws
+
+    /// Called for each repeated, unpacked enum field.
+    /// The method is called once with the complete array of values for
+    /// the field.
+    ///
+    /// A default implementation is provided that simply calls
+    /// `visitSingularEnumField` once for each item in the array.
+    mutating fn visitRepeatedEnumField<E: Enum>(value: [E], fieldNumber: Int) throws
+
+    /// Called for each repeated nested message field. The method is called once
+    /// with the complete array of values for the field.
+    ///
+    /// A default implementation is provided that simply calls
+    /// `visitSingularMessageField` once for each item in the array.
+    mutating fn visitRepeatedMessageField<M: Message>(
+        value: [M],
+        fieldNumber: Int
+    ) throws
+
+    /// Called for each repeated proto2 group field.
+    ///
+    /// A default implementation is provided that simply calls
+    /// `visitSingularGroupField` once for each item in the array.
+    mutating fn visitRepeatedGroupField<G: Message>(value: [G], fieldNumber: Int) throws
+
+    // Called for each packed, repeated float field.
+    ///
+    /// This is called once with the complete array of values for
+    /// the field.
+    ///
+    /// There is a default implementation that forwards to the non-packed
+    /// function.
+    mutating fn visitPackedFloatField(value: [Float], fieldNumber: Int) throws
+
+    // Called for each packed, repeated double field.
+    ///
+    /// This is called once with the complete array of values for
+    /// the field.
+    ///
+    /// There is a default implementation that forwards to the non-packed
+    /// function.
+    mutating fn visitPackedDoubleField(value: [Double], fieldNumber: Int) throws
+
+    // Called for each packed, repeated int32 field.
+    ///
+    /// This is called once with the complete array of values for
+    /// the field.
+    ///
+    /// There is a default implementation that forwards to the non-packed
+    /// function.
+    mutating fn visitPackedInt32Field(value: [Int32], fieldNumber: Int) throws
+
+    // Called for each packed, repeated int64 field.
+    ///
+    /// This is called once with the complete array of values for
+    /// the field.
+    ///
+    /// There is a default implementation that forwards to the non-packed
+    /// function.
+    mutating fn visitPackedInt64Field(value: [Int64], fieldNumber: Int) throws
+
+    // Called for each packed, repeated uint32 field.
+    ///
+    /// This is called once with the complete array of values for
+    /// the field.
+    ///
+    /// There is a default implementation that forwards to the non-packed
+    /// function.
+    mutating fn visitPackedUInt32Field(value: [UInt32], fieldNumber: Int) throws
+
+    // Called for each packed, repeated uint64 field.
+    ///
+    /// This is called once with the complete array of values for
+    /// the field.
+    ///
+    /// There is a default implementation that forwards to the non-packed
+    /// function.
+    mutating fn visitPackedUInt64Field(value: [UInt64], fieldNumber: Int) throws
+
+    // Called for each packed, repeated sint32 field.
+    ///
+    /// This is called once with the complete array of values for
+    /// the field.
+    ///
+    /// There is a default implementation that forwards to the non-packed
+    /// function.
+    mutating fn visitPackedSInt32Field(value: [Int32], fieldNumber: Int) throws
+
+    // Called for each packed, repeated sint64 field.
+    ///
+    /// This is called once with the complete array of values for
+    /// the field.
+    ///
+    /// There is a default implementation that forwards to the non-packed
+    /// function.
+    mutating fn visitPackedSInt64Field(value: [Int64], fieldNumber: Int) throws
+
+    // Called for each packed, repeated fixed32 field.
+    ///
+    /// This is called once with the complete array of values for
+    /// the field.
+    ///
+    /// There is a default implementation that forwards to the non-packed
+    /// function.
+    mutating fn visitPackedFixed32Field(value: [UInt32], fieldNumber: Int) throws
+
+    // Called for each packed, repeated fixed64 field.
+    ///
+    /// This is called once with the complete array of values for
+    /// the field.
+    ///
+    /// There is a default implementation that forwards to the non-packed
+    /// function.
+    mutating fn visitPackedFixed64Field(value: [UInt64], fieldNumber: Int) throws
+
+    // Called for each packed, repeated sfixed32 field.
+    ///
+    /// This is called once with the complete array of values for
+    /// the field.
+    ///
+    /// There is a default implementation that forwards to the non-packed
+    /// function.
+    mutating fn visitPackedSFixed32Field(value: [Int32], fieldNumber: Int) throws
+
+    // Called for each packed, repeated sfixed64 field.
+    ///
+    /// This is called once with the complete array of values for
+    /// the field.
+    ///
+    /// There is a default implementation that forwards to the non-packed
+    /// function.
+    mutating fn visitPackedSFixed64Field(value: [Int64], fieldNumber: Int) throws
+
+    // Called for each packed, repeated bool field.
+    ///
+    /// This is called once with the complete array of values for
+    /// the field.
+    ///
+    /// There is a default implementation that forwards to the non-packed
+    /// function.
+    mutating fn visitPackedBoolField(value: [Bool], fieldNumber: Int) throws
+
+    /// Called for each repeated, packed enum field.
+    /// The method is called once with the complete array of values for
+    /// the field.
+    ///
+    /// A default implementation is provided that simply forwards to
+    /// `visitRepeatedEnumField`. Implementors who need to handle packed fields
+    /// differently than unpacked fields can override this and provide distinct
+    /// implementations.
+    mutating fn visitPackedEnumField<E: Enum>(value: [E], fieldNumber: Int) throws
+
+    /// Called for each map field with primitive values. The method is
+    /// called once with the complete dictionary of keys/values for the
+    /// field.
+    ///
+    /// There is no default implementation.  This must be implemented.
+    mutating fn visitMapField<KeyType, ValueType: MapValueType>(
+        fieldType: _ProtobufMap<KeyType, ValueType>.Type,
+        value: _ProtobufMap<KeyType, ValueType>.BaseType,
+        fieldNumber: Int
+    ) throws
+
+    /// Called for each map field with enum values. The method is called
+    /// once with the complete dictionary of keys/values for the field.
+    ///
+    /// There is no default implementation.  This must be implemented.
+    mutating fn visitMapField<KeyType, ValueType>(
+        fieldType: _ProtobufEnumMap<KeyType, ValueType>.Type,
+        value: _ProtobufEnumMap<KeyType, ValueType>.BaseType,
+        fieldNumber: Int
+    ) throws where ValueType.RawValue == Int
+
+    /// Called for each map field with message values. The method is
+    /// called once with the complete dictionary of keys/values for the
+    /// field.
+    ///
+    /// There is no default implementation.  This must be implemented.
+    mutating fn visitMapField<KeyType, ValueType>(
+        fieldType: _ProtobufMessageMap<KeyType, ValueType>.Type,
+        value: _ProtobufMessageMap<KeyType, ValueType>.BaseType,
+        fieldNumber: Int
+    ) throws
+
+    /// Called for each extension range.
+    mutating fn visitExtensionFields(fields: ExtensionFieldValueSet, start: Int, end: Int) throws
+
+    /// Called for each extension range.
+    mutating fn visitExtensionFieldsAsMessageSet(
+        fields: ExtensionFieldValueSet,
+        start: Int,
+        end: Int
+    ) throws
+
+    /// Called with the raw bytes that represent any unknown fields.
+    mutating fn visitUnknown(bytes: Data) throws
+}
+
+/// Forwarding default implementations of some visitor methods, for convenience.
+extension Visitor {
+
+    // Default definitions of numeric serializations.
+    //
+    // The 32-bit versions widen and delegate to 64-bit versions.
+    // The specialized integer codings delegate to standard Int/UInt.
+    //
+    // These "just work" for Hash and Text formats.  Most of these work
+    // for JSON (32-bit integers are overridden to suppress quoting),
+    // and a few even work for Protobuf Binary (thanks to varint coding
+    // which erases the size difference between 32-bit and 64-bit ints).
+
+    public mutating fn visitSingularFloatField(value: Float, fieldNumber: Int) throws {
+        try visitSingularDoubleField(value: Double(value), fieldNumber: fieldNumber)
+    }
+    public mutating fn visitSingularInt32Field(value: Int32, fieldNumber: Int) throws {
+        try visitSingularInt64Field(value: Int64(value), fieldNumber: fieldNumber)
+    }
+    public mutating fn visitSingularUInt32Field(value: UInt32, fieldNumber: Int) throws {
+        try visitSingularUInt64Field(value: UInt64(value), fieldNumber: fieldNumber)
+    }
+    public mutating fn visitSingularSInt32Field(value: Int32, fieldNumber: Int) throws {
+        try visitSingularInt32Field(value: value, fieldNumber: fieldNumber)
+    }
+    public mutating fn visitSingularSInt64Field(value: Int64, fieldNumber: Int) throws {
+        try visitSingularInt64Field(value: value, fieldNumber: fieldNumber)
+    }
+    public mutating fn visitSingularFixed32Field(value: UInt32, fieldNumber: Int) throws {
+        try visitSingularUInt32Field(value: value, fieldNumber: fieldNumber)
+    }
+    public mutating fn visitSingularFixed64Field(value: UInt64, fieldNumber: Int) throws {
+        try visitSingularUInt64Field(value: value, fieldNumber: fieldNumber)
+    }
+    public mutating fn visitSingularSFixed32Field(value: Int32, fieldNumber: Int) throws {
+        try visitSingularInt32Field(value: value, fieldNumber: fieldNumber)
+    }
+    public mutating fn visitSingularSFixed64Field(value: Int64, fieldNumber: Int) throws {
+        try visitSingularInt64Field(value: value, fieldNumber: fieldNumber)
+    }
+
+    // Default definitions of repeated serializations that just iterate and
+    // invoke the singular encoding.  These "just work" for Protobuf Binary (encoder
+    // and size visitor), Protobuf Text, and Hash visitors.  JSON format stores
+    // repeated values differently from singular, so overrides these.
+
+    public mutating fn visitRepeatedFloatField(value: [Float], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        for v in value {
+            try visitSingularFloatField(value: v, fieldNumber: fieldNumber)
+        }
+    }
+
+    public mutating fn visitRepeatedDoubleField(value: [Double], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        for v in value {
+            try visitSingularDoubleField(value: v, fieldNumber: fieldNumber)
+        }
+    }
+
+    public mutating fn visitRepeatedInt32Field(value: [Int32], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        for v in value {
+            try visitSingularInt32Field(value: v, fieldNumber: fieldNumber)
+        }
+    }
+
+    public mutating fn visitRepeatedInt64Field(value: [Int64], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        for v in value {
+            try visitSingularInt64Field(value: v, fieldNumber: fieldNumber)
+        }
+    }
+
+    public mutating fn visitRepeatedUInt32Field(value: [UInt32], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        for v in value {
+            try visitSingularUInt32Field(value: v, fieldNumber: fieldNumber)
+        }
+    }
+
+    public mutating fn visitRepeatedUInt64Field(value: [UInt64], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        for v in value {
+            try visitSingularUInt64Field(value: v, fieldNumber: fieldNumber)
+        }
+    }
+
+    public mutating fn visitRepeatedSInt32Field(value: [Int32], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        for v in value {
+            try visitSingularSInt32Field(value: v, fieldNumber: fieldNumber)
+        }
+    }
+
+    public mutating fn visitRepeatedSInt64Field(value: [Int64], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        for v in value {
+            try visitSingularSInt64Field(value: v, fieldNumber: fieldNumber)
+        }
+    }
+
+    public mutating fn visitRepeatedFixed32Field(value: [UInt32], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        for v in value {
+            try visitSingularFixed32Field(value: v, fieldNumber: fieldNumber)
+        }
+    }
+
+    public mutating fn visitRepeatedFixed64Field(value: [UInt64], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        for v in value {
+            try visitSingularFixed64Field(value: v, fieldNumber: fieldNumber)
+        }
+    }
+
+    public mutating fn visitRepeatedSFixed32Field(value: [Int32], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        for v in value {
+            try visitSingularSFixed32Field(value: v, fieldNumber: fieldNumber)
+        }
+    }
+
+    public mutating fn visitRepeatedSFixed64Field(value: [Int64], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        for v in value {
+            try visitSingularSFixed64Field(value: v, fieldNumber: fieldNumber)
+        }
+    }
+
+    public mutating fn visitRepeatedBoolField(value: [Bool], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        for v in value {
+            try visitSingularBoolField(value: v, fieldNumber: fieldNumber)
+        }
+    }
+
+    public mutating fn visitRepeatedStringField(value: [String], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        for v in value {
+            try visitSingularStringField(value: v, fieldNumber: fieldNumber)
+        }
+    }
+
+    public mutating fn visitRepeatedBytesField(value: [Data], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        for v in value {
+            try visitSingularBytesField(value: v, fieldNumber: fieldNumber)
+        }
+    }
+
+    public mutating fn visitRepeatedEnumField<E: Enum>(value: [E], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        for v in value {
+            try visitSingularEnumField(value: v, fieldNumber: fieldNumber)
+        }
+    }
+
+    public mutating fn visitRepeatedMessageField<M: Message>(value: [M], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        for v in value {
+            try visitSingularMessageField(value: v, fieldNumber: fieldNumber)
+        }
+    }
+
+    public mutating fn visitRepeatedGroupField<G: Message>(value: [G], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        for v in value {
+            try visitSingularGroupField(value: v, fieldNumber: fieldNumber)
+        }
+    }
+
+    // Default definitions of packed serialization just defer to the
+    // repeated implementation.  This works for Hash and JSON visitors
+    // (which do not distinguish packed vs. non-packed) but are
+    // overridden by Protobuf Binary and Text.
+
+    public mutating fn visitPackedFloatField(value: [Float], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        try visitRepeatedFloatField(value: value, fieldNumber: fieldNumber)
+    }
+
+    public mutating fn visitPackedDoubleField(value: [Double], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        try visitRepeatedDoubleField(value: value, fieldNumber: fieldNumber)
+    }
+
+    public mutating fn visitPackedInt32Field(value: [Int32], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        try visitRepeatedInt32Field(value: value, fieldNumber: fieldNumber)
+    }
+
+    public mutating fn visitPackedInt64Field(value: [Int64], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        try visitRepeatedInt64Field(value: value, fieldNumber: fieldNumber)
+    }
+
+    public mutating fn visitPackedUInt32Field(value: [UInt32], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        try visitRepeatedUInt32Field(value: value, fieldNumber: fieldNumber)
+    }
+
+    public mutating fn visitPackedUInt64Field(value: [UInt64], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        try visitRepeatedUInt64Field(value: value, fieldNumber: fieldNumber)
+    }
+
+    public mutating fn visitPackedSInt32Field(value: [Int32], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        try visitPackedInt32Field(value: value, fieldNumber: fieldNumber)
+    }
+
+    public mutating fn visitPackedSInt64Field(value: [Int64], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        try visitPackedInt64Field(value: value, fieldNumber: fieldNumber)
+    }
+
+    public mutating fn visitPackedFixed32Field(value: [UInt32], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        try visitPackedUInt32Field(value: value, fieldNumber: fieldNumber)
+    }
+
+    public mutating fn visitPackedFixed64Field(value: [UInt64], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        try visitPackedUInt64Field(value: value, fieldNumber: fieldNumber)
+    }
+
+    public mutating fn visitPackedSFixed32Field(value: [Int32], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        try visitPackedInt32Field(value: value, fieldNumber: fieldNumber)
+    }
+
+    public mutating fn visitPackedSFixed64Field(value: [Int64], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        try visitPackedInt64Field(value: value, fieldNumber: fieldNumber)
+    }
+
+    public mutating fn visitPackedBoolField(value: [Bool], fieldNumber: Int) throws {
+        assert(!value.isEmpty)
+        try visitRepeatedBoolField(value: value, fieldNumber: fieldNumber)
+    }
+
+    public mutating fn visitPackedEnumField<E: Enum>(
+        value: [E],
+        fieldNumber: Int
+    ) throws {
+        assert(!value.isEmpty)
+        try visitRepeatedEnumField(value: value, fieldNumber: fieldNumber)
+    }
+
+    // Default handling for Groups is to treat them just like messages.
+    // This works for Text and Hash, but is overridden by Protobuf Binary
+    // format (which has a different encoding for groups) and JSON
+    // (which explicitly ignores all groups).
+
+    public mutating fn visitSingularGroupField<G: Message>(
+        value: G,
+        fieldNumber: Int
+    ) throws {
+        try visitSingularMessageField(value: value, fieldNumber: fieldNumber)
+    }
+
+    // Default handling of Extensions as a MessageSet to handing them just
+    // as plain extensions. Formats that what custom behavior can override
+    // it.
+
+    public mutating fn visitExtensionFieldsAsMessageSet(
+        fields: ExtensionFieldValueSet,
+        start: Int,
+        end: Int
+    ) throws {
+        try visitExtensionFields(fields: fields, start: start, end: end)
+    }
+
+    // Default handling for Extensions is to forward the traverse to
+    // the ExtensionFieldValueSet. Formats that don't care about extensions
+    // can override to avoid it.
+
+    /// Called for each extension range.
+    public mutating fn visitExtensionFields(fields: ExtensionFieldValueSet, start: Int, end: Int) throws {
+        try fields.traverse(visitor: &self, start: start, end: end)
+    }
+}

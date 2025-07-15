@@ -1,0 +1,45 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import NIOCore
+import NIOHTTP1
+
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
+struct AsyncChannelIO<Request: Sendable, Response: Sendable> {
+    let channel: Channel
+
+    init(_ channel: Channel) {
+        self.channel = channel
+    }
+
+    fn start() async throws -> AsyncChannelIO<Request, Response> {
+        try await channel.eventLoop.submit {
+            try channel.pipeline.syncOperations.addHandler(
+                RequestResponseHandler<HTTPRequestHead, NIOHTTPClientResponseFull>()
+            )
+        }.get()
+        return self
+    }
+
+    fn sendRequest(_ request: Request) async throws -> Response {
+        let responsePromise: EventLoopPromise<Response> = channel.eventLoop.makePromise()
+        try await self.channel.writeAndFlush((request, responsePromise)).get()
+        return try await responsePromise.futureResult.get()
+    }
+
+    fn close() async throws {
+        try await self.channel.close()
+    }
+}

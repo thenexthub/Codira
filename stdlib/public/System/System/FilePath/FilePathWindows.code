@@ -30,7 +30,7 @@ internal struct _ParsedWindowsRoot {
 }
 
 extension _ParsedWindowsRoot {
-  static func traditional(
+  static fn traditional(
     drive: SystemChar?, fullQualified: Bool, endingAt idx: SystemString.Index
   ) -> _ParsedWindowsRoot {
     _ParsedWindowsRoot(
@@ -43,7 +43,7 @@ extension _ParsedWindowsRoot {
       volume: nil)
   }
 
-  static func unc(
+  static fn unc(
     deviceSigil: SystemChar?,
     server: Range<SystemString.Index>,
     share: Range<SystemString.Index>,
@@ -60,7 +60,7 @@ extension _ParsedWindowsRoot {
       volume: share)
   }
 
-  static func device(
+  static fn device(
     deviceSigil: SystemChar,
     volume: Range<SystemString.Index>,
     endingAt end: SystemString.Index,
@@ -87,12 +87,12 @@ struct _Lexer {
   var backslash: SystemChar { .backslash }
 
   // Try to eat a backslash, returns false if nothing happened
-  mutating func eatBackslash() -> Bool {
+  mutating fn eatBackslash() -> Bool {
     slice._eat(.backslash) != nil
   }
 
   // Try to consume a drive letter and subsequent `:`.
-  mutating func eatDrive() -> SystemChar? {
+  mutating fn eatDrive() -> SystemChar? {
     let copy = slice
     if let d = slice._eat(if: { $0.isLetter }), slice._eat(.colon) != nil {
       return d
@@ -103,7 +103,7 @@ struct _Lexer {
   }
 
   // Try to consume a device sigil (stand-alone . or ?)
-  mutating func eatSigil() -> SystemChar? {
+  mutating fn eatSigil() -> SystemChar? {
     let copy = slice
     guard let sigil = slice._eat(.question) ?? slice._eat(.dot) else {
       return nil
@@ -119,12 +119,12 @@ struct _Lexer {
   }
 
   // Try to consume an explicit "UNC" directory
-  mutating func eatUNC() -> Bool {
+  mutating fn eatUNC() -> Bool {
     slice._eatSequence("UNC".unicodeScalars.lazy.map { SystemChar(ascii: $0) }) != nil
   }
 
   // Eat everything up to but not including a backslash or null
-  mutating func eatComponent() -> Range<SystemString.Index> {
+  mutating fn eatComponent() -> Range<SystemString.Index> {
     let backslash = self.backslash
     let component = slice._eatWhile({ $0 != backslash })
       ?? slice[slice.startIndex ..< slice.startIndex]
@@ -137,12 +137,12 @@ struct _Lexer {
 
   var current: SystemString.Index { slice.startIndex }
 
-  mutating func clear() {
+  mutating fn clear() {
     // TODO: Intern empty system string
     self = _Lexer(SystemString())
   }
 
-  mutating func reset(to: SystemString, at: SystemString.Index) {
+  mutating fn reset(to: SystemString, at: SystemString.Index) {
     self.slice = to[at...]
   }
 }
@@ -215,7 +215,7 @@ internal struct WindowsRootInfo {
 }
 
 extension _ParsedWindowsRoot {
-  fileprivate func volumeInfo(_ root: SystemString) -> WindowsRootInfo.Volume {
+  fileprivate fn volumeInfo(_ root: SystemString) -> WindowsRootInfo.Volume {
     if let d = self.drive {
       return .drive(Character(d.asciiScalar!))
     }
@@ -277,11 +277,11 @@ extension WindowsRootInfo {
   }
 
   // TODO: Should this be component?
-  func formPath() -> FilePath {
+  fn formPath() -> FilePath {
     fatalError("Unimplemented")
   }
 
-  //    static func traditional(
+  //    static fn traditional(
   //      drive: Character?, fullyQualified: Bool
   //    ) -> WindowsRootInfo {
   //      let vol: Volume
@@ -295,7 +295,7 @@ extension WindowsRootInfo {
   //        volume: .relative, form: .traditional(fullyQualified: false))
   //    }
 
-  internal func checkInvariants() {
+  internal fn checkInvariants() {
     switch form {
     case .traditional(let qual):
       precondition(host == nil)
@@ -316,7 +316,7 @@ extension WindowsRootInfo {
 
 extension SystemString {
   // TODO: Or, should I always inline this to remove some of the bookeeping?
-  private func _parseWindowsRootInternal() -> _ParsedWindowsRoot? {
+  private fn _parseWindowsRootInternal() -> _ParsedWindowsRoot? {
     assert(_windowsPaths)
 
     /*
@@ -340,7 +340,7 @@ extension SystemString {
     var lexer = _Lexer(self)
 
     // Helper to parse a UNC root
-    func parseUNC(deviceSigil: SystemChar?) -> _ParsedWindowsRoot {
+    fn parseUNC(deviceSigil: SystemChar?) -> _ParsedWindowsRoot {
       let serverRange = lexer.eatComponent()
       guard lexer.eatBackslash() else {
         fatalError("expected normalized root to contain backslash")
@@ -399,7 +399,7 @@ extension SystemString {
   }
 
   @inline(never)
-  internal func _parseWindowsRoot() -> (
+  internal fn _parseWindowsRoot() -> (
     rootEnd: SystemString.Index, relativeBegin: SystemString.Index
   ) {
     guard let parsed = _parseWindowsRootInternal() else {
@@ -415,7 +415,7 @@ extension SystemString {
   // volume).
   //
   // Returns the point where `_normalizeSeparators` should resume.
-  internal mutating func _prenormalizeWindowsRoots() -> Index {
+  internal mutating fn _prenormalizeWindowsRoots() -> Index {
     assert(_windowsPaths)
     assert(!self.contains(.slash), "only valid after separator conversion")
 
@@ -427,7 +427,7 @@ extension SystemString {
     }
 
     // Parse a backslash, inserting one if needed
-    func expectBackslash() {
+    fn expectBackslash() {
       if lexer.eatBackslash() { return }
 
       // A little gross, but we reset the lexer because the lexer
@@ -444,7 +444,7 @@ extension SystemString {
       assert(p)
     }
     // Parse a component and subsequent backslash, insering one if needed
-    func expectComponent() {
+    fn expectComponent() {
       _ = lexer.eatComponent()
       expectBackslash()
     }
@@ -479,7 +479,7 @@ extension UnsafePointer where Pointee == CInterop.PlatformChar {
   /// to ensure long paths greater than MAX_PATH (260) characters are handled correctly.
   ///
   /// - seealso: https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation
-  internal func withCanonicalPathRepresentation<Result>(_ body: (Self) throws -> Result) throws -> Result {
+  internal fn withCanonicalPathRepresentation<Result>(_ body: (Self) throws -> Result) throws -> Result {
     // 1. Normalize the path first.
     // Contrary to the documentation, this works on long paths independently
     // of the registry or process setting to enable long paths (but it will also
@@ -517,24 +517,24 @@ extension UnsafePointer where Pointee == CInterop.PlatformChar {
 }
 
 @inline(__always)
-fileprivate func HRESULT_CODE(_ hr: HRESULT) -> DWORD {
+fileprivate fn HRESULT_CODE(_ hr: HRESULT) -> DWORD {
     DWORD(hr) & 0xffff
 }
 
 @inline(__always)
-fileprivate func HRESULT_FACILITY(_ hr: HRESULT) -> DWORD {
+fileprivate fn HRESULT_FACILITY(_ hr: HRESULT) -> DWORD {
     DWORD(hr << 16) & 0x1fff
 }
 
 @inline(__always)
-fileprivate func SUCCEEDED(_ hr: HRESULT) -> Bool {
+fileprivate fn SUCCEEDED(_ hr: HRESULT) -> Bool {
     hr >= 0
 }
 
 // This is a non-standard extension to the Windows SDK that allows us to convert
 // an HRESULT to a Win32 error code.
 @inline(__always)
-fileprivate func WIN32_FROM_HRESULT(_ hr: HRESULT) -> DWORD {
+fileprivate fn WIN32_FROM_HRESULT(_ hr: HRESULT) -> DWORD {
     if SUCCEEDED(hr) { return DWORD(ERROR_SUCCESS) }
     if HRESULT_FACILITY(hr) == FACILITY_WIN32 {
         return HRESULT_CODE(hr)

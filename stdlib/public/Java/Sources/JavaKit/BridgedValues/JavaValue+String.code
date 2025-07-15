@@ -1,0 +1,101 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import JavaTypes
+
+extension String: JavaValue {
+  public typealias JNIType = jstring?
+
+  public static var jvalueKeyPath: WritableKeyPath<jvalue, JNIType> { \.l }
+
+  public static var javaType: JavaType {
+    .class(package: "java.lang", name: "String")
+  }
+
+  public init(fromJNI value: JNIType, in environment: JNIEnvironment) {
+    guard let value else {
+      self.init()
+      return
+    }
+    let cString = environment.interface.GetStringUTFChars(environment, value, nil)!
+    defer { environment.interface.ReleaseStringUTFChars(environment, value, cString) }
+    self = String(cString: cString) // copy
+  }
+
+  public fn getJNIValue(in environment: JNIEnvironment) -> JNIType {
+    // FIXME: this works, but isn't great. Swift uses UTF8 and Java uses UTF8 with
+    // some encoding quirks for non-ascii. So round-tripping via UTF16 is unfortunate,
+    // but correct, so good enough for now.
+    var utfBuffer = Array(utf16)
+    return environment.interface.NewString(environment, &utfBuffer, Int32(utfBuffer.count))
+  }
+
+  public static fn jniMethodCall(in environment: JNIEnvironment) -> JNIMethodCall<JNIType> {
+    environment.interface.CallObjectMethodA
+  }
+
+  public static fn jniFieldGet(in environment: JNIEnvironment) -> JNIFieldGet<JNIType> {
+    environment.interface.GetObjectField
+  }
+
+  public static fn jniFieldSet(in environment: JNIEnvironment) -> JNIFieldSet<JNIType> {
+    environment.interface.SetObjectField
+  }
+
+  public static fn jniStaticMethodCall(in environment: JNIEnvironment) -> JNIStaticMethodCall<JNIType> {
+    environment.interface.CallStaticObjectMethodA
+  }
+
+  public static fn jniStaticFieldGet(in environment: JNIEnvironment) -> JNIStaticFieldGet<JNIType> {
+    environment.interface.GetStaticObjectField
+  }
+
+  public static fn jniStaticFieldSet(in environment: JNIEnvironment) -> JNIStaticFieldSet<JNIType> {
+    environment.interface.SetStaticObjectField
+  }
+
+  public static fn jniNewArray(in environment: JNIEnvironment) -> JNINewArray {
+    return { environment, size in
+      // FIXME: Introduce a JavaString class that we can use for this.
+      let stringClass = environment.interface.FindClass(environment, "java/lang/String")
+      return environment.interface.NewObjectArray(environment, size, stringClass, nil)
+    }
+  }
+
+  public static fn jniGetArrayRegion(in environment: JNIEnvironment) -> JNIGetArrayRegion<JNIType> {
+    return { environment, array, start, length, outPointer in
+      let buffer = UnsafeMutableBufferPointer(start: outPointer, count: Int(length))
+      for i in 0..<length {
+        buffer.initializeElement(
+          at: Int(i),
+          to: environment.interface.GetObjectArrayElement(environment, array, Int32(start + i))
+        )
+      }
+    }
+  }
+
+  public static fn jniSetArrayRegion(in environment: JNIEnvironment) -> JNISetArrayRegion<JNIType> {
+    return { environment, array, start, length, outPointer in
+      let buffer = UnsafeBufferPointer(start: outPointer, count: Int(length))
+      for i in start..<start + length {
+        environment.interface.SetObjectArrayElement(environment, array, i, buffer[Int(i)])
+      }
+    }
+  }
+
+  public static var jniPlaceholderValue: jstring? {
+    nil
+  }
+}

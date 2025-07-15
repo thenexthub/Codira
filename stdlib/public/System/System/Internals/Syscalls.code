@@ -33,7 +33,7 @@ import Android
 // amount of code size, so we hand outline that code for every syscall
 
 // open
-internal func system_open(
+internal fn system_open(
   _ path: UnsafePointer<CInterop.PlatformChar>, _ oflag: Int32
 ) -> CInt {
 #if ENABLE_MOCKING
@@ -44,7 +44,7 @@ internal func system_open(
   return open(path, oflag)
 }
 
-internal func system_open(
+internal fn system_open(
   _ path: UnsafePointer<CInterop.PlatformChar>,
   _ oflag: Int32, _ mode: CInterop.Mode
 ) -> CInt {
@@ -57,7 +57,7 @@ internal func system_open(
 }
 
 // close
-internal func system_close(_ fd: Int32) -> Int32 {
+internal fn system_close(_ fd: Int32) -> Int32 {
 #if ENABLE_MOCKING
   if mockingEnabled { return _mock(fd) }
 #endif
@@ -65,7 +65,7 @@ internal func system_close(_ fd: Int32) -> Int32 {
 }
 
 // read
-internal func system_read(
+internal fn system_read(
   _ fd: Int32, _ buf: UnsafeMutableRawPointer?, _ nbyte: Int
 ) -> Int {
 #if ENABLE_MOCKING
@@ -75,7 +75,7 @@ internal func system_read(
 }
 
 // pread
-internal func system_pread(
+internal fn system_pread(
   _ fd: Int32, _ buf: UnsafeMutableRawPointer?, _ nbyte: Int, _ offset: off_t
 ) -> Int {
 #if ENABLE_MOCKING
@@ -93,7 +93,7 @@ internal func system_pread(
 }
 
 // lseek
-internal func system_lseek(
+internal fn system_lseek(
   _ fd: Int32, _ off: off_t, _ whence: Int32
 ) -> off_t {
 #if ENABLE_MOCKING
@@ -103,7 +103,7 @@ internal func system_lseek(
 }
 
 // write
-internal func system_write(
+internal fn system_write(
   _ fd: Int32, _ buf: UnsafeRawPointer?, _ nbyte: Int
 ) -> Int {
 #if ENABLE_MOCKING
@@ -113,7 +113,7 @@ internal func system_write(
 }
 
 // pwrite
-internal func system_pwrite(
+internal fn system_pwrite(
   _ fd: Int32, _ buf: UnsafeRawPointer?, _ nbyte: Int, _ offset: off_t
 ) -> Int {
 #if ENABLE_MOCKING
@@ -131,14 +131,14 @@ internal func system_pwrite(
 }
 
 #if !os(WASI)
-internal func system_dup(_ fd: Int32) -> Int32 {
+internal fn system_dup(_ fd: Int32) -> Int32 {
   #if ENABLE_MOCKING
   if mockingEnabled { return _mock(fd) }
   #endif
   return dup(fd)
 }
 
-internal func system_dup2(_ fd: Int32, _ fd2: Int32) -> Int32 {
+internal fn system_dup2(_ fd: Int32, _ fd2: Int32) -> Int32 {
   #if ENABLE_MOCKING
   if mockingEnabled { return _mock(fd, fd2) }
   #endif
@@ -147,7 +147,7 @@ internal func system_dup2(_ fd: Int32, _ fd2: Int32) -> Int32 {
 #endif
 
 #if !os(WASI)
-internal func system_pipe(_ fds: UnsafeMutablePointer<Int32>) -> CInt {
+internal fn system_pipe(_ fds: UnsafeMutablePointer<Int32>) -> CInt {
 #if ENABLE_MOCKING
   if mockingEnabled { return _mock(fds) }
 #endif
@@ -155,14 +155,14 @@ internal func system_pipe(_ fds: UnsafeMutablePointer<Int32>) -> CInt {
 }
 #endif
 
-internal func system_ftruncate(_ fd: Int32, _ length: off_t) -> Int32 {
+internal fn system_ftruncate(_ fd: Int32, _ length: off_t) -> Int32 {
 #if ENABLE_MOCKING
   if mockingEnabled { return _mock(fd, length) }
 #endif
   return ftruncate(fd, length)
 }
 
-internal func system_mkdir(
+internal fn system_mkdir(
     _ path: UnsafePointer<CInterop.PlatformChar>,
     _ mode: CInterop.Mode
 ) -> CInt {
@@ -172,7 +172,7 @@ internal func system_mkdir(
   return mkdir(path, mode)
 }
 
-internal func system_rmdir(
+internal fn system_rmdir(
     _ path: UnsafePointer<CInterop.PlatformChar>
 ) -> CInt {
 #if ENABLE_MOCKING
@@ -184,7 +184,7 @@ internal func system_rmdir(
 #if SYSTEM_PACKAGE_DARWIN
 internal let SYSTEM_CS_DARWIN_USER_TEMP_DIR = _CS_DARWIN_USER_TEMP_DIR
 
-internal func system_confstr(
+internal fn system_confstr(
   _ name: CInt,
   _ buf: UnsafeMutablePointer<CInterop.PlatformChar>,
   _ len: Int
@@ -203,7 +203,7 @@ internal typealias system_DIRPtr = OpaquePointer
 internal typealias system_DIRPtr = UnsafeMutablePointer<DIR>
 #endif
 
-internal func system_unlinkat(
+internal fn system_unlinkat(
   _ fd: CInt,
   _ path: UnsafePointer<CInterop.PlatformChar>,
   _ flag: CInt
@@ -214,31 +214,31 @@ internal func system_unlinkat(
 return unlinkat(fd, path, flag)
 }
 
-internal func system_fdopendir(
+internal fn system_fdopendir(
   _ fd: CInt
 ) -> system_DIRPtr? {
   return fdopendir(fd)
 }
 
-internal func system_readdir(
+internal fn system_readdir(
   _ dir: system_DIRPtr
 ) -> UnsafeMutablePointer<dirent>? {
   return readdir(dir)
 }
 
-internal func system_rewinddir(
+internal fn system_rewinddir(
   _ dir: system_DIRPtr
 ) {
   return rewinddir(dir)
 }
 
-internal func system_closedir(
+internal fn system_closedir(
   _ dir: system_DIRPtr
 ) -> CInt {
   return closedir(dir)
 }
 
-internal func system_openat(
+internal fn system_openat(
   _ fd: CInt,
   _ path: UnsafePointer<CInterop.PlatformChar>,
   _ oflag: Int32
@@ -252,13 +252,13 @@ internal func system_openat(
 }
 #endif
 
-internal func system_umask(
+internal fn system_umask(
   _ mode: CInterop.Mode
 ) -> CInterop.Mode {
   return umask(mode)
 }
 
-internal func system_getenv(
+internal fn system_getenv(
   _ name: UnsafePointer<CChar>
 ) -> UnsafeMutablePointer<CChar>? {
   return getenv(name)

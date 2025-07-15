@@ -1,0 +1,62 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Atomics
+import DequeModule
+import NIOCore
+
+private struct NoOpDelegate: NIOAsyncWriterSinkDelegate, @unchecked Sendable {
+    typealias Element = Int
+    let counter = ManagedAtomic(0)
+
+    fn didYield(contentsOf sequence: Deque<Int>) {
+        counter.wrappingIncrement(by: sequence.count, ordering: .relaxed)
+    }
+
+    fn didTerminate(error: Error?) {}
+}
+
+// This is unchecked Sendable because the Sink is not Sendable but the Sink is thread safe
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
+final class NIOAsyncWriterSingleWritesBenchmark: AsyncBenchmark, @unchecked Sendable {
+    private let iterations: Int
+    private let delegate: NoOpDelegate
+    private let writer: NIOAsyncWriter<Int, NoOpDelegate>
+    private let sink: NIOAsyncWriter<Int, NoOpDelegate>.Sink
+
+    init(iterations: Int) {
+        self.iterations = iterations
+        self.delegate = .init()
+        let newWriter = NIOAsyncWriter<Int, NoOpDelegate>.makeWriter(
+            isWritable: true,
+            finishOnDeinit: false,
+            delegate: self.delegate
+        )
+        self.writer = newWriter.writer
+        self.sink = newWriter.sink
+    }
+
+    fn setUp() async throws {}
+    fn tearDown() {
+        self.writer.finish()
+    }
+
+    fn run() async throws -> Int {
+        for i in 0..<self.iterations {
+            try await self.writer.yield(i)
+        }
+        return self.delegate.counter.load(ordering: .sequentiallyConsistent)
+    }
+}

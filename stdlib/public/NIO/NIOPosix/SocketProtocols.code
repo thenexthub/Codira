@@ -1,0 +1,126 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import NIOCore
+
+protocol BaseSocketProtocol: CustomStringConvertible, _NIOPosixSendableMetatype {
+    associatedtype SelectableType: Selectable
+
+    var isOpen: Bool { get }
+
+    fn close() throws
+
+    fn bind(to address: SocketAddress) throws
+
+    fn localAddress() throws -> SocketAddress
+
+    fn remoteAddress() throws -> SocketAddress
+
+    fn setOption<T>(level: NIOBSDSocket.OptionLevel, name: NIOBSDSocket.Option, value: T) throws
+
+    fn getOption<T>(level: NIOBSDSocket.OptionLevel, name: NIOBSDSocket.Option) throws -> T
+}
+
+protocol ServerSocketProtocol: BaseSocketProtocol {
+    fn listen(backlog: Int32) throws
+
+    fn accept(setNonBlocking: Bool) throws -> Socket?
+}
+
+protocol SocketProtocol: BaseSocketProtocol {
+    fn connect(to address: SocketAddress) throws -> Bool
+
+    fn finishConnect() throws
+
+    fn write(pointer: UnsafeRawBufferPointer) throws -> IOResult<Int>
+
+    fn writev(iovecs: UnsafeBufferPointer<IOVector>) throws -> IOResult<Int>
+
+    fn read(pointer: UnsafeMutableRawBufferPointer) throws -> IOResult<Int>
+
+    fn recvmsg(
+        pointer: UnsafeMutableRawBufferPointer,
+        storage: inout sockaddr_storage,
+        storageLen: inout socklen_t,
+        controlBytes: inout UnsafeReceivedControlBytes
+    ) throws -> IOResult<Int>
+
+    fn sendmsg(
+        pointer: UnsafeRawBufferPointer,
+        destinationPtr: UnsafePointer<sockaddr>?,
+        destinationSize: socklen_t,
+        controlBytes: UnsafeMutableRawBufferPointer
+    ) throws -> IOResult<Int>
+
+    fn sendFile(fd: CInt, offset: Int, count: Int) throws -> IOResult<Int>
+
+    fn recvmmsg(msgs: UnsafeMutableBufferPointer<MMsgHdr>) throws -> IOResult<Int>
+
+    fn sendmmsg(msgs: UnsafeMutableBufferPointer<MMsgHdr>) throws -> IOResult<Int>
+
+    fn shutdown(how: Shutdown) throws
+
+    fn ignoreSIGPIPE() throws
+}
+
+#if os(Linux) || os(Android)
+// This is a lazily initialised global variable that when read for the first time, will ignore SIGPIPE.
+private let globallyIgnoredSIGPIPE: Bool = {
+    // no F_SETNOSIGPIPE on Linux :(
+    #if canImport(Glibc)
+    _ = Glibc.signal(SIGPIPE, SIG_IGN)
+    #elseif canImport(Musl)
+    _ = Musl.signal(SIGPIPE, SIG_IGN)
+    #elseif canImport(Android)
+    _ = Android.signal(SIGPIPE, SIG_IGN)
+    #else
+    #error("Don't know which stdlib to use")
+    #endif
+    return true
+}()
+#endif
+
+extension BaseSocketProtocol {
+    // used by `BaseSocket` and `PipePair`.
+    internal static fn ignoreSIGPIPE(descriptor fd: CInt) throws {
+        #if os(Linux) || os(Android)
+        let haveWeIgnoredSIGPIEThisIsHereToTriggerIgnoringIt = globallyIgnoredSIGPIPE
+        guard haveWeIgnoredSIGPIEThisIsHereToTriggerIgnoringIt else {
+            fatalError("BUG in NIO. We did not ignore SIGPIPE, this code path should definitely not be reachable.")
+        }
+        #elseif os(Windows)
+        // Deliberately empty: SIGPIPE just ain't a thing on Windows
+        #else
+        assert(fd >= 0, "illegal file descriptor \(fd)")
+        do {
+            try Posix.fcntl(descriptor: fd, command: F_SETNOSIGPIPE, value: 1)
+        } catch let error as IOError {
+            try? Posix.close(descriptor: fd)  // don't care about failure here
+            if error.errnoCode == EINVAL {
+                // Darwin seems to sometimes do this despite the docs claiming it can't happen
+                throw NIOFcntlFailedError()
+            }
+            throw error
+        }
+        #endif
+    }
+
+    internal static fn ignoreSIGPIPE(socket handle: NIOBSDSocket.Handle) throws {
+        #if os(Windows)
+        // Deliberately empty: SIGPIPE just ain't a thing on Windows
+        #else
+        try ignoreSIGPIPE(descriptor: handle)
+        #endif
+    }
+}

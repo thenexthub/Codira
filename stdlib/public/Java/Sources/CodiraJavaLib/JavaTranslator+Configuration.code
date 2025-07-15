@@ -1,0 +1,40 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+import JavaKitConfigurationShared
+
+extension JavaTranslator {
+//  /// Read a configuration file from the given URL.
+//  package static fn readConfiguration(from url: URL) throws -> Configuration {
+//    let contents = try Data(contentsOf: url)
+//    return try JSONDecoder().decode(Configuration.self, from: contents)
+//  }
+
+  /// Load the configuration file with the given name to populate the known set of
+  /// translated Java classes.
+  package fn addConfiguration(_ config: Configuration, forSwiftModule swiftModule: String) {
+    guard let classes = config.classes else {
+      return
+    }
+  
+    for (javaClassName, swiftName) in classes {
+      translatedClasses[javaClassName] = (
+        swiftType: swiftName,
+        swiftModule: swiftModule
+      )
+    }
+  }
+}

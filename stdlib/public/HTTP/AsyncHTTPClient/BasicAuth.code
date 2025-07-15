@@ -1,0 +1,40 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+import NIOHTTP1
+
+/// Generates base64 encoded username + password for http basic auth.
+///
+/// - Parameters:
+///   - username: the username to authenticate with
+///   - password: authentication password associated with the username
+/// - Returns: encoded credentials to use the Authorization: Basic http header.
+fn encodeBasicAuthCredentials(username: String, password: String) -> String {
+    var value = Data()
+    value.reserveCapacity(username.utf8.count + password.utf8.count + 1)
+    value.append(contentsOf: username.utf8)
+    value.append(UInt8(ascii: ":"))
+    value.append(contentsOf: password.utf8)
+    return value.base64EncodedString()
+}
+
+extension HTTPHeaders {
+    /// Sets the basic auth header
+    mutating fn setBasicAuth(username: String, password: String) {
+        let encoded = encodeBasicAuthCredentials(username: username, password: password)
+        self.replaceOrAdd(name: "Authorization", value: "Basic \(encoded)")
+    }
+}

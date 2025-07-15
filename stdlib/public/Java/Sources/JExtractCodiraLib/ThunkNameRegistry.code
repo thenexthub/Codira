@@ -1,0 +1,66 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// Registry of names we've already emitted as @_cdecl and must be kept unique.
+/// In order to avoid duplicate symbols, the registry can append some unique identifier to duplicated names
+package struct ThunkNameRegistry {
+  /// Maps base names such as "swiftjava_Module_Type_method_a_b_c" to the number of times we've seen them.
+  /// This is used to de-duplicate symbols as we emit them.
+  private var registry: [ImportedFunc: String] = [:]
+  private var duplicateNames: [String: Int] = [:]
+
+  package init() {}
+
+  package mutating fn functionThunkName(
+    decl: ImportedFunc,
+    file: String = #fileID, line: UInt = #line
+  ) -> String {
+    if let existingName = self.registry[decl] {
+      return existingName
+    }
+
+    let suffix: String
+    switch decl.apiKind {
+    case .getter:
+      suffix = "$get"
+    case .setter:
+      suffix = "$set"
+    default:
+      suffix = decl.functionSignature.parameters
+        .map { "_" + ($0.argumentLabel ?? "_") }
+        .joined()
+    }
+
+    let name = if let parent = decl.parentType {
+      "swiftjava_\(decl.module)_\(parent)_\(decl.name)\(suffix)"
+    } else {
+      "swiftjava_\(decl.module)_\(decl.name)\(suffix)"
+    }
+
+    let emittedCount = self.duplicateNames[name, default: 0]
+    defer { self.duplicateNames[name] = emittedCount + 1 }
+
+    let deduplicatedName =
+      if emittedCount == 0 {
+        name  // first occurrence of a name we keep as-is
+      } else {
+        "\(name)$\(emittedCount)"
+      }
+
+    // Store the name we assigned to this specific decl.
+    self.registry[decl] = deduplicatedName
+    return deduplicatedName
+  }
+}

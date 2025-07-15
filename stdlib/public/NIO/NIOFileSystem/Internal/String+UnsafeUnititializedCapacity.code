@@ -1,0 +1,62 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+extension String {
+    @inlinable
+    init(
+        backportUnsafeUninitializedCapacity capacity: Int,
+        initializingUTF8With initializer: (_ buffer: UnsafeMutableBufferPointer<UInt8>) throws -> Int
+    ) rethrows {
+        // The buffer will store zero terminated C string
+        let buffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: capacity + 1)
+        defer {
+            buffer.deallocate()
+        }
+
+        let initializedCount = try initializer(buffer)
+        precondition(initializedCount <= capacity, "Overran buffer in initializer!")
+
+        // add zero termination
+        buffer[initializedCount] = 0
+
+        self = String(cString: buffer.baseAddress!)
+    }
+}
+
+// Frustratingly, Swift 5.3 shipped before the macOS 11 SDK did, so we cannot gate the availability of
+// this declaration on having the 5.3 compiler. This has caused a number of build issues. While updating
+// to newer Xcodes does work, we can save ourselves some hassle and just wait until 5.4 to get this
+// enhancement on Apple platforms.
+extension String {
+    @inlinable
+    init(
+        customUnsafeUninitializedCapacity capacity: Int,
+        initializingUTF8With initializer: (
+            _ buffer: UnsafeMutableBufferPointer<UInt8>
+        ) throws -> Int
+    ) rethrows {
+        if #available(macOS 11.0, iOS 14.0, tvOS 14.0, watchOS 7.0, *) {
+            try self.init(
+                unsafeUninitializedCapacity: capacity,
+                initializingUTF8With: initializer
+            )
+        } else {
+            try self.init(
+                backportUnsafeUninitializedCapacity: capacity,
+                initializingUTF8With: initializer
+            )
+        }
+    }
+}

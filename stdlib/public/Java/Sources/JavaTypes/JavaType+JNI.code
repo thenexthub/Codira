@@ -1,0 +1,61 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+extension JavaType {
+  /// Map this Java type to the appropriate JNI type name.
+  package var jniTypeName: String {
+    switch self {
+    case .boolean: "jboolean"
+    case .float: "jfloat"
+    case .double: "jdouble"
+    case .byte: "jbyte"
+    case .char: "jchar"
+    case .short: "jshort"
+    case .int: "jint"
+    case .long: "jlong"
+    case .void: "void"
+    case .array(.boolean): "jbooleanArray?"
+    case .array(.byte): "jbyteArray?"
+    case .array(.char): "jcharArray?"
+    case .array(.short): "jshortArray?"
+    case .array(.int): "jintArray?"
+    case .array(.long): "jlongArray?"
+    case .array(.float): "jfloatArray?"
+    case .array(.double): "jdoubleArray?"
+    case .array: "jobjectArray?"
+    case .class(package: "java.lang", name: "String"): "jstring?"
+    case .class(package: "java.lang", name: "Class"): "jclass?"
+    case .class(package: "java.lang", name: "Throwable"): "jthrowable?"
+    case .class: "jobject?"
+    }
+  }
+
+  /// Map this Java type to the appropriate JNI field name within the 'jvalue'
+  /// union.
+  public var jniFieldName: String {
+    switch self {
+    case .boolean: "z"
+    case .byte: "b"
+    case .char: "c"
+    case .short: "s"
+    case .int: "i"
+    case .long: "j"
+    case .float: "f"
+    case .double: "d"
+    case .class, .array: "l"
+    case .void: fatalError("There is no field name for 'void'")
+    }
+  }
+}

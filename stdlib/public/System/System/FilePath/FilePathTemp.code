@@ -18,7 +18,7 @@
 /// Creates a temporary directory with a name based on the given `basename`,
 /// executes `body`, passing in the path of the created directory, then
 /// deletes the directory and all of its contents before returning.
-internal func withTemporaryFilePath<R>(
+internal fn withTemporaryFilePath<R>(
   basename: FilePath.Component,
   _ body: (FilePath) throws -> R
 ) throws -> R {
@@ -44,7 +44,7 @@ fileprivate let base64 = Array<UInt8>(
 ///
 /// This function will throw if there is an error, except if the error
 /// is that the directory exists, in which case it returns `false`.
-fileprivate func makeLockedDownDirectory(at path: FilePath) throws -> Bool {
+fileprivate fn makeLockedDownDirectory(at path: FilePath) throws -> Bool {
   return try path.withPlatformString {
     if system_mkdir($0, 0o700) == 0 {
       return true
@@ -63,7 +63,7 @@ fileprivate func makeLockedDownDirectory(at path: FilePath) throws -> Bool {
 /// - Parameters:
 ///   - length: The number of characters in the returned string.
 /// - Returns: A random string of length `length`.
-fileprivate func createRandomString(length: Int) -> String {
+fileprivate fn createRandomString(length: Int) -> String {
   return String(
     decoding: (0..<length).map{
       _ in base64[Int.random(in: 0..<64)]
@@ -81,7 +81,7 @@ fileprivate func createRandomString(length: Int) -> String {
 /// Creates a directory in the system temporary directory whose name
 /// starts with `basename`, followed by a `.` and then a random
 /// string of characters.
-fileprivate func createUniqueTemporaryDirectory(
+fileprivate fn createUniqueTemporaryDirectory(
   basename: FilePath.Component
 ) throws -> FilePath {
   var tempDir = try _getTemporaryDirectory()

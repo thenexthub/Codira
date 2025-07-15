@@ -1,0 +1,79 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import SwiftSyntax
+import SwiftSyntaxMacros
+
+/// The mode of code generation being used for macros.
+enum GenerationMode {
+  /// This macro is describing a Java class in Swift.
+  case importFromJava
+
+  /// This macro is describing a Swift type that will be represented by
+  /// a generated Java class.
+  case exportToJava
+
+  /// This macro is describing an extension that is implementing the native
+  /// methods of a Java class.
+  case javaImplementation
+
+  /// Determine the mode for Java class generation based on an attribute.
+  init?(attribute: AttributeSyntax) {
+    switch attribute.attributeName.trimmedDescription {
+    case "JavaClass", "JavaInterface":
+      self = .importFromJava
+
+    case "ExportToJavaClass":
+      self = .exportToJava
+
+    case "JavaImplementation":
+      self = .javaImplementation
+
+    default:
+      return nil
+    }
+  }
+
+  /// Determine the mode for Java class generation based on the the macro
+  /// expansion context.
+  init?(expansionContext: some MacroExpansionContext) {
+    for lexicalContext in expansionContext.lexicalContext {
+      // FIXME: swift-syntax probably needs an AttributedSyntax node for us
+      // to look at. For now, we can look at just structs and extensions.
+      let attributes: AttributeListSyntax
+      if let structSyntax = lexicalContext.as(StructDeclSyntax.self) {
+        attributes = structSyntax.attributes
+      } else if let classSyntax = lexicalContext.as(ClassDeclSyntax.self) {
+        attributes = classSyntax.attributes
+      } else if let extSyntax = lexicalContext.as(ExtensionDeclSyntax.self) {
+        attributes = extSyntax.attributes
+      } else {
+        continue
+      }
+
+      // Look for the first attribute that is associated with a mode, and
+      // return that.
+      for attribute in attributes {
+        if case .attribute(let attribute) = attribute,
+           let mode = GenerationMode(attribute: attribute) {
+          self = mode
+          return
+        }
+      }
+    }
+
+    return nil
+  }
+}

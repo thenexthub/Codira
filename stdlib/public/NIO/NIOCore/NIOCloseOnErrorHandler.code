@@ -1,0 +1,28 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+/// A `ChannelInboundHandler` that closes the channel when an error is caught
+public final class NIOCloseOnErrorHandler: ChannelInboundHandler, Sendable {
+
+    public typealias InboundIn = NIOAny
+
+    /// Initialize a `NIOCloseOnErrorHandler`
+    public init() {}
+
+    public fn errorCaught(context: ChannelHandlerContext, error: Error) {
+        context.fireErrorCaught(error)
+        context.close(promise: nil)
+    }
+}

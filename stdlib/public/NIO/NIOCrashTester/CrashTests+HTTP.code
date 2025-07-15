@@ -1,0 +1,62 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+#if !canImport(Darwin) || os(macOS)
+import NIOEmbedded
+import NIOCore
+import NIOHTTP1
+
+struct HTTPCrashTests {
+    let testEncodingChunkedAndContentLengthForRequestsCrashes = CrashTest(
+        regex:
+            "Assertion failed: illegal HTTP sent: HTTPRequestHead .* contains both a content-length and transfer-encoding:chunked",
+        {
+            let channel = EmbeddedChannel(handler: HTTPRequestEncoder())
+            _ = try? channel.writeAndFlush(
+                HTTPClientRequestPart.head(
+                    HTTPRequestHead(
+                        version: .http1_1,
+                        method: .POST,
+                        uri: "/",
+                        headers: [
+                            "content-Length": "1",
+                            "transfer-Encoding": "chunked",
+                        ]
+                    )
+                )
+            ).wait()
+        }
+    )
+
+    let testEncodingChunkedAndContentLengthForResponseCrashes = CrashTest(
+        regex:
+            "Assertion failed: illegal HTTP sent: HTTPResponseHead .* contains both a content-length and transfer-encoding:chunked",
+        {
+            let channel = EmbeddedChannel(handler: HTTPResponseEncoder())
+            _ = try? channel.writeAndFlush(
+                HTTPServerResponsePart.head(
+                    HTTPResponseHead(
+                        version: .http1_1,
+                        status: .ok,
+                        headers: [
+                            "content-Length": "1",
+                            "transfer-Encoding": "chunked",
+                        ]
+                    )
+                )
+            ).wait()
+        }
+    )
+}
+#endif

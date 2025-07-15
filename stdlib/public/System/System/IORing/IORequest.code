@@ -103,7 +103,7 @@ internal enum IORequestCore {
 }
 
 @inline(__always) @inlinable
-internal func makeRawRequest_readWrite_registered(
+internal fn makeRawRequest_readWrite_registered(
     file: FileDescriptor,
     buffer: IORing.RegisteredBuffer,
     offset: UInt64,
@@ -119,7 +119,7 @@ internal func makeRawRequest_readWrite_registered(
 }
 
 @inline(__always) @inlinable
-internal func makeRawRequest_readWrite_registered_slot(
+internal fn makeRawRequest_readWrite_registered_slot(
     file: IORing.RegisteredFile,
     buffer: IORing.RegisteredBuffer,
     offset: UInt64,
@@ -136,7 +136,7 @@ internal func makeRawRequest_readWrite_registered_slot(
 }
 
 @inline(__always) @inlinable
-internal func makeRawRequest_readWrite_unregistered(
+internal fn makeRawRequest_readWrite_unregistered(
     file: FileDescriptor,
     buffer: UnsafeMutableRawBufferPointer,
     offset: UInt64,
@@ -151,7 +151,7 @@ internal func makeRawRequest_readWrite_unregistered(
 }
 
 @inline(__always) @inlinable
-internal func makeRawRequest_readWrite_unregistered_slot(
+internal fn makeRawRequest_readWrite_unregistered_slot(
     file: IORing.RegisteredFile,
     buffer: UnsafeMutableRawBufferPointer,
     offset: UInt64,
@@ -174,7 +174,7 @@ extension IORing {
             core = inCore
         }
 
-        @inlinable internal consuming func extractCore() -> IORequestCore {
+        @inlinable internal consuming fn extractCore() -> IORequestCore {
             return core
         }
     }
@@ -183,11 +183,11 @@ extension IORing {
 
 
 extension IORing.Request {
-    @inlinable public static func nop(context: UInt64 = 0) -> IORing.Request {
+    @inlinable public static fn nop(context: UInt64 = 0) -> IORing.Request {
         .init(core: .nop)
     }
 
-    @inlinable public static func read(
+    @inlinable public static fn read(
         _ file: IORing.RegisteredFile,
         into buffer: IORing.RegisteredBuffer,
         at offset: UInt64 = 0,
@@ -196,7 +196,7 @@ extension IORing.Request {
         .init(core: .readSlot(file: file, buffer: buffer, offset: offset, context: context))
     }
 
-    @inlinable public static func read(
+    @inlinable public static fn read(
         _ file: FileDescriptor,
         into buffer: IORing.RegisteredBuffer,
         at offset: UInt64 = 0,
@@ -205,7 +205,7 @@ extension IORing.Request {
         .init(core: .read(file: file, buffer: buffer, offset: offset, context: context))
     }
 
-    @inlinable public static func read(
+    @inlinable public static fn read(
         _ file: IORing.RegisteredFile,
         into buffer: UnsafeMutableRawBufferPointer,
         at offset: UInt64 = 0,
@@ -214,7 +214,7 @@ extension IORing.Request {
         .init(core: .readUnregisteredSlot(file: file, buffer: buffer, offset: offset, context: context))
     }
 
-    @inlinable public static func read(
+    @inlinable public static fn read(
         _ file: FileDescriptor,
         into buffer: UnsafeMutableRawBufferPointer,
         at offset: UInt64 = 0,
@@ -223,7 +223,7 @@ extension IORing.Request {
         .init(core: .readUnregistered(file: file, buffer: buffer, offset: offset, context: context))
     }
 
-    @inlinable public static func write(
+    @inlinable public static fn write(
         _ buffer: IORing.RegisteredBuffer,
         into file: IORing.RegisteredFile,
         at offset: UInt64 = 0,
@@ -232,7 +232,7 @@ extension IORing.Request {
         .init(core: .writeSlot(file: file, buffer: buffer, offset: offset, context: context))
     }
 
-    @inlinable public static func write(
+    @inlinable public static fn write(
         _ buffer: IORing.RegisteredBuffer,
         into file: FileDescriptor,
         at offset: UInt64 = 0,
@@ -241,7 +241,7 @@ extension IORing.Request {
         .init(core: .write(file: file, buffer: buffer, offset: offset, context: context))
     }
 
-    @inlinable public static func write(
+    @inlinable public static fn write(
         _ buffer: UnsafeMutableRawBufferPointer,
         into file: IORing.RegisteredFile,
         at offset: UInt64 = 0,
@@ -251,7 +251,7 @@ extension IORing.Request {
                 file: file, buffer: buffer, offset: offset, context: context))
     }
 
-    @inlinable public static func write(
+    @inlinable public static fn write(
         _ buffer: UnsafeMutableRawBufferPointer,
         into file: FileDescriptor,
         at offset: UInt64 = 0,
@@ -262,21 +262,21 @@ extension IORing.Request {
         )
     }
 
-    @inlinable public static func close(
+    @inlinable public static fn close(
         _ file: FileDescriptor,
         context: UInt64 = 0
     ) -> IORing.Request {
         .init(core: .close(file, context: context))
     }
 
-    @inlinable public static func close(
+    @inlinable public static fn close(
         _ file: IORing.RegisteredFile,
         context: UInt64 = 0
     ) -> IORing.Request {
         .init(core: .closeSlot(file, context: context))
     }
 
-    @inlinable public static func open(
+    @inlinable public static fn open(
         _ path: FilePath,
         in directory: FileDescriptor,
         into slot: IORing.RegisteredFile,
@@ -291,7 +291,7 @@ extension IORing.Request {
                 permissions: permissions, intoSlot: slot, context: context))
     }
 
-    @inlinable public static func open(
+    @inlinable public static fn open(
         _ path: FilePath,
         in directory: FileDescriptor,
         mode: FileDescriptor.AccessMode,
@@ -306,7 +306,7 @@ extension IORing.Request {
             ))
     }
 
-    @inlinable public static func unlink(
+    @inlinable public static fn unlink(
         _ path: FilePath,
         in directory: FileDescriptor,
         context: UInt64 = 0
@@ -340,7 +340,7 @@ extension IORing.Request {
     	case first
     }
     
-    @inlinable public static func cancel(
+    @inlinable public static fn cancel(
     	_ matchAll: CancellationMatch,
     	matchingContext: UInt64
     ) -> IORing.Request {
@@ -352,7 +352,7 @@ extension IORing.Request {
         }
     }
     
-    @inlinable public static func cancel(
+    @inlinable public static fn cancel(
     	_ matchAll: CancellationMatch,
     	matching: FileDescriptor
     ) -> IORing.Request {
@@ -364,7 +364,7 @@ extension IORing.Request {
         }
     }
     
-    @inlinable public static func cancel(
+    @inlinable public static fn cancel(
     	_ matchAll: CancellationMatch,
     	matching: IORing.RegisteredFile
     ) -> IORing.Request {
@@ -376,7 +376,7 @@ extension IORing.Request {
         }
     }
 
-    @inlinable public static func cancel(
+    @inlinable public static fn cancel(
     	_ matchAll: CancellationMatch,
     ) -> IORing.Request {
         switch matchAll {
@@ -388,7 +388,7 @@ extension IORing.Request {
     }
 
     @inline(__always) @inlinable
-    internal consuming func makeRawRequest() -> RawIORequest {
+    internal consuming fn makeRawRequest() -> RawIORequest {
         var request = RawIORequest()
         switch extractCore() {
         case .nop:

@@ -1,0 +1,88 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+plugins {
+    id("build-logic.java-application-conventions")
+}
+
+group = "org.swift.swiftkit"
+version = "1.0-SNAPSHOT"
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(24))
+    }
+}
+
+dependencies {
+    implementation(project(':SwiftKitCore'))
+
+    testImplementation(platform("org.junit:junit-bom:5.10.0"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+}
+
+testing {
+    suites {
+        test {
+            useJUnitJupiter('5.10.3')
+        }
+    }
+}
+
+tasks.test {
+    useJUnitPlatform()
+    testLogging {
+        events("passed", "skipped", "failed")
+    }
+}
+
+/// Enable access to preview APIs, e.g. java.lang.foreign.* (Panama)
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs.add("--enable-preview")
+    options.compilerArgs.add("-Xlint:preview")
+}
+
+// SwiftKit depends on SwiftKitSwift (Swift library that this Java library calls into)
+
+def compileSwift = tasks.register("compileSwift", Exec) {
+    description "Compile the swift-java SwiftKitSwift dynamic library that SwiftKit (Java) calls into"
+
+    inputs.file(new File(rootDir, "Package.swift"))
+    inputs.dir(new File(rootDir, "Sources/")) // a bit generous, but better safe than sorry, and include all Swift source changes
+    outputs.dir(new File(rootDir, ".build"))
+
+    workingDir = rootDir
+    commandLine "swift"
+    args("build", "--target", "SwiftKitSwift")
+}
+tasks.build {
+    dependsOn("compileSwift")
+}
+
+
+
+def cleanSwift = tasks.register("cleanSwift", Exec) {
+    workingDir = rootDir
+    commandLine "swift"
+    args("package", "clean")
+}
+tasks.clean {
+    dependsOn("cleanSwift")
+}
+

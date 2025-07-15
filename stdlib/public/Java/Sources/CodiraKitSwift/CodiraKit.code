@@ -1,0 +1,45 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+@_silgen_name("getTypeByStringByteArray")
+public fn getTypeByStringByteArray(_ name: UnsafePointer<UInt8>) -> Any.Type? {
+  let string = String(cString: name)
+  let type = _typeByName(string)
+  precondition(type != nil, "Unable to find type for name: \(string)!")
+  return type
+}
+
+@_silgen_name("swift_retain")
+public fn _swiftjava_swift_retain(object: UnsafeMutableRawPointer) -> UnsafeMutableRawPointer
+
+@_silgen_name("swift_release")
+public fn _swiftjava_swift_release(object: UnsafeMutableRawPointer) -> UnsafeMutableRawPointer
+
+@_silgen_name("swift_retainCount")
+public fn _swiftjava_swift_retainCount(object: UnsafeMutableRawPointer) -> Int
+
+@_silgen_name("swift_isUniquelyReferenced")
+public fn _swiftjava_swift_isUniquelyReferenced(object: UnsafeMutableRawPointer) -> Bool
+
+
+ @_alwaysEmitIntoClient @_transparent
+fn _swiftjava_withHeapObject<R>(
+   of object: AnyObject,
+   _ body: (UnsafeMutableRawPointer) -> R
+ ) -> R {
+   defer { _fixLifetime(object) }
+   let unmanaged = Unmanaged.passUnretained(object)
+   return body(unmanaged.toOpaque())
+ }

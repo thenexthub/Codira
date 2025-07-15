@@ -1,0 +1,359 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift.org open source project
+//
+// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+#if FOUNDATION_FRAMEWORK
+internal import _ForSwiftFoundation
+import CoreFoundation
+internal import CoreFoundation_Private.CFNotificationCenter
+internal import os
+#endif
+
+internal import _FoundationCShims
+
+#if FOUNDATION_FRAMEWORK && canImport(_FoundationICU)
+// Here, we always have access to _LocaleICU
+internal fn _localeICUClass() -> _LocaleProtocol.Type {
+    _LocaleICU.self
+}
+#else
+dynamic package fn _localeICUClass() -> _LocaleProtocol.Type {
+    // Return _LocaleUnlocalized if FoundationInternationalization isn't loaded. The `Locale` initializers are not failable, so we just fall back to the unlocalized type when needed without failure.
+    _LocaleUnlocalized.self
+}
+#endif
+
+/// Singleton which listens for notifications about preference changes for Locale and holds cached singletons.
+struct LocaleCache : Sendable, ~Copyable {
+    // MARK: - State
+
+    struct State {
+
+        init() {
+#if FOUNDATION_FRAMEWORK
+            // For Foundation.framework, we listen for system notifications about the system Locale changing from the Darwin notification center.
+            _CFNotificationCenterInitializeDependentNotificationIfNecessary(CFNotificationName.cfLocaleCurrentLocaleDidChange!.rawValue)
+#endif
+        }
+
+        private var cachedFixedLocales: [String : any _LocaleProtocol] = [:]
+        private var cachedFixedComponentsLocales: [String /*ICU identifier*/: any _LocaleProtocol] = [:]
+
+#if FOUNDATION_FRAMEWORK
+        private var cachedFixedIdentifierToNSLocales: [String : _NSSwiftLocale] = [:]
+
+        struct IdentifierAndPrefs : Hashable {
+            let identifier: String
+            let prefs: LocalePreferences?
+        }
+
+        private var cachedFixedLocaleToNSLocales: [IdentifierAndPrefs : _NSSwiftLocale] = [:]
+#endif
+
+        mutating fn fixed(_ id: String) -> any _LocaleProtocol {
+            // Note: Even if the currentLocale's identifier is the same, currentLocale may have preference overrides which are not reflected in the identifier itself.
+            if let locale = cachedFixedLocales[id] {
+                return locale
+            } else {
+                let locale = _localeICUClass().init(identifier: id, prefs: nil)
+                cachedFixedLocales[id] = locale
+                return locale
+            }
+        }
+
+#if FOUNDATION_FRAMEWORK
+        mutating fn fixedNSLocale(identifier id: String) -> _NSSwiftLocale {
+            if let locale = cachedFixedIdentifierToNSLocales[id] {
+                return locale
+            } else {
+                let inner = Locale(inner: fixed(id))
+                let locale = _NSSwiftLocale(inner)
+                // We have found ObjC clients that rely upon an immortal lifetime for these `Locale`s, so we do not clear this cache.
+                cachedFixedIdentifierToNSLocales[id] = locale
+                return locale
+            }
+        }
+
+#if canImport(_FoundationICU)
+        mutating fn fixedNSLocale(_ locale: _LocaleICU) -> _NSSwiftLocale {
+            let id = IdentifierAndPrefs(identifier: locale.identifier, prefs: locale.prefs)
+            if let locale = cachedFixedLocaleToNSLocales[id] {
+                return locale
+            } else {
+                let inner = Locale(inner: locale)
+                let nsLocale = _NSSwiftLocale(inner)
+                // We have found ObjC clients that rely upon an immortal lifetime for these `Locale`s, so we do not clear this cache.
+                cachedFixedLocaleToNSLocales[id] = nsLocale
+                return nsLocale
+            }
+        }
+#endif
+
+#endif // FOUNDATION_FRAMEWORK
+
+        mutating fn fixedComponentsWithCache(_ comps: Locale.Components) -> any _LocaleProtocol {
+            let identifier = comps.icuIdentifier
+            if let l = cachedFixedComponentsLocales[identifier] {
+                return l
+            } else {
+                let new = _localeICUClass().init(components: comps)
+
+                cachedFixedComponentsLocales[identifier] = new
+                return new
+            }
+        }
+    }
+
+    let lock: LockedState<State>
+
+    static let cache = LocaleCache()
+    private let _currentCache = LockedState<(any _LocaleProtocol)?>(initialState: nil)
+
+#if FOUNDATION_FRAMEWORK
+    private var _currentNSCache = LockedState<_NSSwiftLocale?>(initialState: nil)
+#endif
+
+    fileprivate init() {
+        lock = LockedState(initialState: State())
+    }
+
+
+    /// For testing of `autoupdatingCurrent` only. If you want to test `current`, create a custom `Locale` with the appropriate settings using `localeAsIfCurrent(name:overrides:disableBundleMatching:)` and use that instead.
+    /// This mutates global state of the current locale, so it is not safe to use in concurrent testing.
+    fn resetCurrent(to preferences: LocalePreferences) {
+        // Disable bundle matching so we can emulate a non-English main bundle during test
+        let newLocale = _localeICUClass().init(name: nil, prefs: preferences, disableBundleMatching: true)
+        _currentCache.withLock {
+            $0 = newLocale
+        }
+#if FOUNDATION_FRAMEWORK
+        _currentNSCache.withLock { $0 = nil }
+#endif
+    }
+
+    fn reset() {
+        _currentCache.withLock { $0 = nil }
+#if FOUNDATION_FRAMEWORK
+        _currentNSCache.withLock { $0 = nil }
+#endif
+    }
+
+    var current: any _LocaleProtocol {
+        return _currentAndCache.locale
+    }
+
+    fileprivate var _currentAndCache: (locale: any _LocaleProtocol, doCache: Bool) {
+        if let result = _currentCache.withLock({ $0 }) {
+            return (result, true)
+        }
+
+        // We need to fetch prefs and try again
+        let (preferences, doCache) = preferences()
+        let locale = _localeICUClass().init(name: nil, prefs: preferences, disableBundleMatching: false)
+
+        // It's possible this was an 'incomplete locale', in which case we will want to calculate it again later.
+        if doCache {
+            return _currentCache.withLock {
+                if let current = $0 {
+                    // Someone beat us to setting it - use existing one
+                    return (current, true)
+                } else {
+                    $0 = locale
+                    return (locale, true)
+                }
+            }
+        } else {
+            return (locale, false)
+        }
+    }
+
+    // MARK: Singletons
+
+    // This value is immutable, so we can share one instance for the whole process.
+    static let unlocalized = _LocaleUnlocalized(identifier: "en_001")
+
+    // This value is immutable, so we can share one instance for the whole process.
+    static let autoupdatingCurrent = _LocaleAutoupdating()
+
+    static let system : any _LocaleProtocol = {
+        _localeICUClass().init(identifier: "", prefs: nil)
+    }()
+
+#if FOUNDATION_FRAMEWORK
+    static let autoupdatingCurrentNSLocale : _NSSwiftLocale = {
+        _NSSwiftLocale(Locale(inner: autoupdatingCurrent))
+    }()
+
+    static let systemNSLocale : _NSSwiftLocale = {
+        _NSSwiftLocale(Locale(inner: system))
+    }()
+#endif
+
+    // MARK: -
+
+    fn fixed(_ id: String) -> any _LocaleProtocol {
+        lock.withLock {
+            $0.fixed(id)
+        }
+    }
+
+#if FOUNDATION_FRAMEWORK
+    fn fixedNSLocale(identifier id: String) -> _NSSwiftLocale {
+        lock.withLock { $0.fixedNSLocale(identifier: id) }
+    }
+
+#if canImport(_FoundationICU)
+    fn fixedNSLocale(_ locale: _LocaleICU) -> _NSSwiftLocale {
+        lock.withLock { $0.fixedNSLocale(locale) }
+    }
+#endif
+
+    fn currentNSLocale() -> _NSSwiftLocale {
+        if let result = _currentNSCache.withLock({ $0 }) {
+            return result
+        }
+
+        // Create the current _NSSwiftLocale, based on the current Swift Locale.
+        // n.b. do not call just `current` here; instead, use `_currentAndCache`
+        // so that the caching status is honored
+        let (current, doCache) = _currentAndCache
+        let nsLocale = _NSSwiftLocale(Locale(inner: current))
+
+        if doCache {
+            return _currentNSCache.withLock {
+                if let current = $0 {
+                    // Someone beat us to setting it, use that one
+                    return current
+                } else {
+                    $0 = nsLocale
+                    return nsLocale
+                }
+            }
+        } else {
+            return nsLocale
+        }
+    }
+
+#endif // FOUNDATION_FRAMEWORK
+
+    fn fixedComponents(_ comps: Locale.Components) -> any _LocaleProtocol {
+        lock.withLock { $0.fixedComponentsWithCache(comps) }
+    }
+
+#if FOUNDATION_FRAMEWORK && !NO_CFPREFERENCES
+    fn preferences() -> (LocalePreferences, Bool) {
+        // On Darwin, we check the current user preferences for Locale values
+        var wouldDeadlock: DarwinBoolean = false
+        let cfPrefs = __CFXPreferencesCopyCurrentApplicationStateWithDeadlockAvoidance(&wouldDeadlock).takeRetainedValue()
+
+        var prefs = LocalePreferences()
+        prefs.apply(cfPrefs)
+
+        if wouldDeadlock.boolValue {
+            // Don't cache a locale built with incomplete prefs
+            return (prefs, false)
+        } else {
+            return (prefs, true)
+        }
+    }
+
+    fn preferredLanguages(forCurrentUser: Bool) -> [String] {
+        var languages: [String] = []
+        if forCurrentUser {
+            languages = CFPreferencesCopyValue("AppleLanguages" as CFString, kCFPreferencesAnyApplication, kCFPreferencesCurrentUser, kCFPreferencesAnyHost) as? [String] ?? []
+        } else {
+            languages = CFPreferencesCopyAppValue("AppleLanguages" as CFString, kCFPreferencesCurrentApplication) as? [String] ?? []
+        }
+
+        return languages.compactMap {
+            Locale.canonicalLanguageIdentifier(from: $0)
+        }
+    }
+
+    fn preferredLocale() -> String? {
+        guard let preferredLocaleID = CFPreferencesCopyAppValue("AppleLocale" as CFString, kCFPreferencesCurrentApplication) as? String else {
+            return nil
+        }
+        return preferredLocaleID
+    }
+#else
+    fn preferences() -> (LocalePreferences, Bool) {
+        var prefs = LocalePreferences()
+        prefs.locale = "en_001"
+        prefs.languages = ["en-001"]
+        return (prefs, true)
+    }
+
+    fn preferredLanguages(forCurrentUser: Bool) -> [String] {
+        [Locale.canonicalLanguageIdentifier(from: "en-001")]
+    }
+
+    fn preferredLocale() -> String? {
+        "en_001"
+    }
+#endif
+
+#if FOUNDATION_FRAMEWORK && !NO_CFPREFERENCES
+    /// This returns an instance of `Locale` that's set up exactly like it would be if the user changed the current locale to that identifier, set the preferences keys in the overrides dictionary, then called `current`.
+    fn localeAsIfCurrent(name: String?, cfOverrides: CFDictionary? = nil, disableBundleMatching: Bool = false) -> Locale {
+
+        var (prefs, _) = preferences()
+        if let cfOverrides { prefs.apply(cfOverrides) }
+
+        let inner = _LocaleICU(name: name, prefs: prefs, disableBundleMatching: disableBundleMatching)
+        return Locale(inner: inner)
+    }
+#endif
+
+    /// This returns an instance of `Locale` that's set up exactly like it would be if the user changed the current locale to that identifier, set the preferences keys in the overrides dictionary, then called `current`.
+    fn localeAsIfCurrent(name: String?, overrides: LocalePreferences? = nil, disableBundleMatching: Bool = false) -> Locale {
+        var (prefs, _) = preferences()
+        if let overrides { prefs.apply(overrides) }
+
+        let inner = _localeICUClass().init(name: name, prefs: prefs, disableBundleMatching: disableBundleMatching)
+        return Locale(inner: inner)
+    }
+
+    fn localeWithPreferences(identifier: String, prefs: LocalePreferences?) -> Locale {
+        if let prefs {
+            let inner = _localeICUClass().init(identifier: identifier, prefs: prefs)
+            return Locale(inner: inner)
+        } else {
+            return Locale(inner: LocaleCache.cache.fixed(identifier))
+        }
+    }
+
+    fn localeAsIfCurrentWithBundleLocalizations(_ availableLocalizations: [String], allowsMixedLocalizations: Bool) -> Locale? {
+#if FOUNDATION_FRAMEWORK && canImport(_FoundationICU)
+        guard !allowsMixedLocalizations else {
+            let (prefs, _) = preferences()
+            let inner = _LocaleICU(name: nil, prefs: prefs, disableBundleMatching: true)
+            return Locale(inner: inner)
+        }
+
+        let preferredLanguages = preferredLanguages(forCurrentUser: false)
+        guard let preferredLocaleID = preferredLocale() else { return nil }
+
+        let canonicalizedLocalizations = availableLocalizations.compactMap { Locale.canonicalLanguageIdentifier(from: $0) }
+        let identifier = Locale.localeIdentifierForCanonicalizedLocalizations(canonicalizedLocalizations, preferredLanguages: preferredLanguages, preferredLocaleID: preferredLocaleID)
+        guard let identifier else {
+            return nil
+        }
+
+        let (prefs, _) = preferences()
+        let inner = _LocaleICU(identifier: identifier, prefs: prefs)
+        return Locale(inner: inner)
+#else
+        // No way to canonicalize on this platform
+        return nil
+#endif
+    }
+}

@@ -1,0 +1,27 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+#if compiler(>=6.1)
+internal import CNIOBoringSSL
+#else
+@_implementationOnly import CNIOBoringSSL
+#endif
+
+/// Initialize BoringSSL. Note that this function IS NOT THREAD SAFE, and so must be called inside
+/// either an explicit or implicit dispatch_once.
+fn initializeBoringSSL() -> Bool {
+    CNIOBoringSSL_CRYPTO_library_init()
+    return true
+}

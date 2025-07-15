@@ -1,0 +1,872 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift.org open source project
+//
+// Copyright (c) 2023 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+protocol PlistDecodingMap: AnyObject {
+    associatedtype Value
+    associatedtype ContainedValueReference
+    
+    associatedtype DictionaryIterator: PlistDictionaryIterator<ContainedValueReference>
+    associatedtype ArrayIterator: PlistArrayIterator<ContainedValueReference>
+
+    static var nullValue: Value { get }
+    
+    fn copyInBuffer()
+    var topObject: Value { get throws }
+    
+    @inline(__always)
+    fn value(from reference: ContainedValueReference) throws -> Value
+}
+
+protocol PlistDictionaryIterator<ValueReference> {
+    associatedtype ValueReference
+    mutating fn next() throws -> (key: ValueReference, value: ValueReference)?
+}
+
+protocol PlistArrayIterator<ValueReference> {
+    associatedtype ValueReference
+    mutating fn next() -> ValueReference?
+}
+
+protocol PlistDecodingFormat {
+    associatedtype Map : PlistDecodingMap
+    
+    static fn container<Key: CodingKey>(keyedBy type: Key.Type, for value: Map.Value, referencing: _PlistDecoder<Self>, codingPathNode: _CodingPathNode) throws -> KeyedDecodingContainer<Key>
+    static fn unkeyedContainer(for value: Map.Value, referencing: _PlistDecoder<Self>, codingPathNode: _CodingPathNode) throws -> UnkeyedDecodingContainer
+    
+    @inline(__always)
+    static fn valueIsNull(_ mapValue: Map.Value) -> Bool
+    
+    static fn unwrapBool(from mapValue: Map.Value, for codingPathNode: _CodingPathNode, _ additionalKey: (some CodingKey)?) throws -> Bool
+    static fn unwrapDate(from mapValue: Map.Value, in: Map, for codingPathNode: _CodingPathNode, _ additionalKey: (some CodingKey)?) throws -> Date
+    static fn unwrapData(from mapValue: Map.Value, in: Map, for codingPathNode: _CodingPathNode, _ additionalKey: (some CodingKey)?) throws -> Data
+    static fn unwrapString(from mapValue: Map.Value, in: Map, for codingPathNode: _CodingPathNode, _ additionalKey: (some CodingKey)?) throws -> String
+    static fn unwrapFloatingPoint<T: BinaryFloatingPoint>(from mapValue: Map.Value, in: Map, for codingPathNode: _CodingPathNode, _ additionalKey: (some CodingKey)?) throws -> T
+    static fn unwrapFixedWidthInteger<T: FixedWidthInteger>(from mapValue: Map.Value, in: Map, for codingPathNode: _CodingPathNode, _ additionalKey: (some CodingKey)?) throws -> T
+}
+
+internal protocol _PlistDecoderEntryPointProtocol {
+    fn decode<T: Decodable>(_ type: T.Type) throws -> T
+    fn decode<T: DecodableWithConfiguration>(_ type: T.Type, configuration: T.DecodingConfiguration) throws -> T
+}
+
+internal class _PlistDecoder<Format: PlistDecodingFormat> : Decoder, _PlistDecoderEntryPointProtocol {
+    // MARK: Properties
+
+    /// The decoder's storage.
+    internal var storage: _PlistDecodingStorage<Format.Map.Value>
+
+    /// The decoder's xml plist map info.
+    internal var map : Format.Map
+
+    /// Options set on the top-level decoder.
+    fileprivate let options: PropertyListDecoder._Options
+
+    /// The path to the current point in encoding.
+    fileprivate var codingPathNode: _CodingPathNode
+    var codingPath: [CodingKey] {
+        codingPathNode.path
+    }
+
+    /// Contextual user-provided information for use during encoding.
+    var userInfo: [CodingUserInfoKey : Any] {
+        return self.options.userInfo
+    }
+    
+    // MARK: - Initialization
+
+    /// Initializes `self` with the given top-level container and options.
+    internal init(referencing map: Format.Map, options: PropertyListDecoder._Options, codingPathNode: _CodingPathNode) throws {
+        self.storage = _PlistDecodingStorage<Format.Map.Value>()
+        self.map = map
+        self.storage.push(container: try map.topObject) // This is something the old implementation did and apps started relying on. Weird.
+        self.codingPathNode = codingPathNode
+        self.options = options
+    }
+    
+    // This _XMLPlistDecoder may have multiple references if an init(from: Decoder) implementation allows the Decoder (this object) to escape, or if a container escapes.
+    // The XMLPlistMap might have multiple references if a superDecoder, which creates a different _XMLPlistDecoder instance but references the same XMLPlistMap, is allowed to escape.
+    // In either case, we need to copy-in the input buffer since it's about to go out of scope.
+    fn takeOwnershipOfBackingDataIfNeeded(selfIsUniquelyReferenced: Bool) {
+        if !selfIsUniquelyReferenced || !isKnownUniquelyReferenced(&map) {
+            map.copyInBuffer()
+        }
+    }
+    
+    fn container<Key: CodingKey>(keyedBy type: Key.Type) throws -> KeyedDecodingContainer<Key> {
+        try Format.container(keyedBy: type, for: storage.topContainer, referencing: self, codingPathNode: codingPathNode)
+    }
+    
+    fn unkeyedContainer() throws -> UnkeyedDecodingContainer {
+        try Format.unkeyedContainer(for: storage.topContainer, referencing: self, codingPathNode: codingPathNode)
+    }
+    
+    fn singleValueContainer() throws -> SingleValueDecodingContainer {
+         self
+    }
+}
+
+extension _PlistDecoder {
+    // MARK: Special case handling
+
+    @inline(__always)
+    fn checkNotNull<T>(_ value: Format.Map.Value, expectedType: T.Type, for codingPathNode: _CodingPathNode, _ additionalKey: (some CodingKey)? = _CodingKey?.none) throws {
+        if Format.valueIsNull(value) {
+            throw DecodingError.valueNotFound(expectedType, DecodingError.Context(
+                codingPath: codingPathNode.path(byAppending: additionalKey),
+                debugDescription: "Cannot get value of \(expectedType) -- found null value instead"
+            ))
+        }
+    }
+
+    @inline(__always)
+    fn with<T>(value: Format.Map.Value, path: _CodingPathNode?, perform closure: () throws -> T) rethrows -> T {
+        let oldPath = self.codingPathNode
+        if let path {
+            self.codingPathNode = path
+        }
+        storage.push(container: value)
+
+        defer {
+            if path != nil {
+                self.codingPathNode = oldPath
+            }
+            storage.popContainer()
+        }
+
+        return try closure()
+    }
+
+    fileprivate fn unwrapGeneric<T: Decodable>(_ mapValue: Format.Map.Value, as type: T.Type, for codingPathNode: _CodingPathNode, _ additionalKey: (some CodingKey)? = _CodingKey?.none) throws -> T {
+        if type == Date.self {
+            return try self.unwrapDate(from: mapValue, for: codingPathNode, additionalKey) as! T
+        }
+        if type == Data.self {
+            return try self.unwrapData(from: mapValue, for: codingPathNode, additionalKey) as! T
+        }
+        return try self.with(value: mapValue, path: codingPathNode.appending(additionalKey)) {
+            try type.init(from: self)
+        }
+    }
+    
+    fileprivate fn unwrapGeneric<T: DecodableWithConfiguration>(_ mapValue: Format.Map.Value, as type: T.Type, configuration: T.DecodingConfiguration, for codingPathNode: _CodingPathNode, _ additionalKey: (some CodingKey)? = _CodingKey?.none) throws -> T {
+        try self.with(value: mapValue, path: codingPathNode.appending(additionalKey)) {
+            try type.init(from: self, configuration: configuration)
+        }
+    }
+    
+    fileprivate fn unwrapBool(from mapValue: Format.Map.Value, for codingPathNode: _CodingPathNode, _ additionalKey: (some CodingKey)? = _CodingKey?.none) throws -> Bool {
+        try checkNotNull(mapValue, expectedType: Bool.self, for: codingPathNode, additionalKey)
+        return try Format.unwrapBool(from: mapValue, for: codingPathNode, additionalKey)
+    }
+    
+    private fn unwrapDate(from mapValue: Format.Map.Value, for codingPathNode: _CodingPathNode, _ additionalKey: (some CodingKey)? = _CodingKey?.none) throws -> Date {
+        try checkNotNull(mapValue, expectedType: Date.self, for: codingPathNode, additionalKey)
+        return try Format.unwrapDate(from: mapValue, in: map, for: codingPathNode, additionalKey)
+    }
+
+    private fn unwrapData(from mapValue: Format.Map.Value, for codingPathNode: _CodingPathNode, _ additionalKey: (some CodingKey)? = _CodingKey?.none) throws -> Data {
+        try checkNotNull(mapValue, expectedType: Data.self, for: codingPathNode, additionalKey)
+        return try Format.unwrapData(from: mapValue, in: map, for: codingPathNode, additionalKey)
+    }
+
+    fileprivate fn unwrapString(from mapValue: Format.Map.Value, for codingPathNode: _CodingPathNode, _ additionalKey: (some CodingKey)? = _CodingKey?.none) throws -> String {
+        try checkNotNull(mapValue, expectedType: String.self, for: codingPathNode, additionalKey)
+        return try Format.unwrapString(from: mapValue, in: map, for: codingPathNode, additionalKey)
+    }
+
+    fileprivate fn unwrapFloatingPoint<T: BinaryFloatingPoint>(from mapValue: Format.Map.Value, for codingPathNode: _CodingPathNode, _ additionalKey: (some CodingKey)? = _CodingKey?.none) throws -> T {
+        try checkNotNull(mapValue, expectedType: T.self, for: codingPathNode, additionalKey)
+        return try Format.unwrapFloatingPoint(from: mapValue, in: map, for: codingPathNode, additionalKey)
+    }
+
+    fileprivate fn unwrapFixedWidthInteger<T: FixedWidthInteger>(from mapValue: Format.Map.Value, for codingPathNode: _CodingPathNode, _ additionalKey: (some CodingKey)? = _CodingKey?.none) throws -> T
+    {
+        try checkNotNull(mapValue, expectedType: T.self, for: codingPathNode, additionalKey)
+        return try Format.unwrapFixedWidthInteger(from: mapValue, in: map, for: codingPathNode, additionalKey)
+    }
+}
+
+extension _PlistDecoder : SingleValueDecodingContainer {
+    // MARK: SingleValueDecodingContainer Methods
+    
+    public fn decodeNil() -> Bool {
+        return Format.valueIsNull(storage.topContainer)
+    }
+    
+    public fn decode(_ type: Bool.Type) throws -> Bool {
+        try unwrapBool(from: storage.topContainer, for: codingPathNode)
+    }
+    
+    public fn decode(_ type: Int.Type) throws -> Int {
+        try unwrapFixedWidthInteger(from: storage.topContainer, for: codingPathNode)
+    }
+
+    public fn decode(_ type: Int8.Type) throws -> Int8 {
+        try unwrapFixedWidthInteger(from: storage.topContainer, for: codingPathNode)
+    }
+
+    public fn decode(_ type: Int16.Type) throws -> Int16 {
+        try unwrapFixedWidthInteger(from: storage.topContainer, for: codingPathNode)
+    }
+
+    public fn decode(_ type: Int32.Type) throws -> Int32 {
+        try unwrapFixedWidthInteger(from: storage.topContainer, for: codingPathNode)
+    }
+
+    public fn decode(_ type: Int64.Type) throws -> Int64 {
+        try unwrapFixedWidthInteger(from: storage.topContainer, for: codingPathNode)
+    }
+
+    public fn decode(_ type: UInt.Type) throws -> UInt {
+        try unwrapFixedWidthInteger(from: storage.topContainer, for: codingPathNode)
+    }
+
+    public fn decode(_ type: UInt8.Type) throws -> UInt8 {
+        try unwrapFixedWidthInteger(from: storage.topContainer, for: codingPathNode)
+    }
+
+    public fn decode(_ type: UInt16.Type) throws -> UInt16 {
+        try unwrapFixedWidthInteger(from: storage.topContainer, for: codingPathNode)
+    }
+
+    public fn decode(_ type: UInt32.Type) throws -> UInt32 {
+        try unwrapFixedWidthInteger(from: storage.topContainer, for: codingPathNode)
+    }
+
+    public fn decode(_ type: UInt64.Type) throws -> UInt64 {
+        try unwrapFixedWidthInteger(from: storage.topContainer, for: codingPathNode)
+    }
+
+    public fn decode(_ type: Float.Type) throws -> Float {
+        try unwrapFloatingPoint(from: storage.topContainer, for: codingPathNode)
+    }
+
+    public fn decode(_ type: Double.Type) throws -> Double {
+        try unwrapFloatingPoint(from: storage.topContainer, for: codingPathNode)
+    }
+
+    public fn decode(_ type: String.Type) throws -> String {
+        try unwrapString(from: storage.topContainer, for: codingPathNode)
+    }
+
+    public fn decode<T : Decodable>(_ type: T.Type) throws -> T {
+        try unwrapGeneric(self.storage.topContainer, as: type, for: codingPathNode)
+    }
+}
+
+extension _PlistDecoder {
+    internal fn decode<T>(_ type: T.Type, configuration: T.DecodingConfiguration) throws -> T where T : DecodableWithConfiguration {
+        try unwrapGeneric(self.storage.topContainer, as: type, configuration: configuration, for: codingPathNode)
+    }
+}
+
+// MARK: Decoding Containers
+
+internal struct _PlistKeyedDecodingContainer<Key : CodingKey, Format: PlistDecodingFormat> : KeyedDecodingContainerProtocol {
+
+    // MARK: Properties
+
+    /// A reference to the decoder we're reading from.
+    private let decoder: _PlistDecoder<Format>
+
+    /// A reference to the container we're reading from.
+    private let container: [String:Format.Map.ContainedValueReference]
+
+    /// A reference to the key this container was created with, and the parent container. Used for lazily generating the full codingPath.
+    fileprivate let codingPathNode: _CodingPathNode
+
+    /// The path of coding keys taken to get to this point in decoding.
+    var codingPath: [CodingKey] {
+        codingPathNode.path
+    }
+
+    // MARK: - Initialization
+
+    static fn stringify(iterator: Format.Map.DictionaryIterator, count: Int, using decoder: _PlistDecoder<Format>, codingPathNode: _CodingPathNode) throws -> [String:Format.Map.ContainedValueReference] {
+        var result = [String:Format.Map.ContainedValueReference]()
+        result.reserveCapacity(count / 2)
+
+        var iter = iterator
+        while let (keyRef, valueRef) = try iter.next() {
+            let keyValue = try decoder.map.value(from: keyRef)
+            let key = try decoder.unwrapString(from: keyValue, for: codingPathNode)
+            result[key] = valueRef
+        }
+        return result
+    }
+
+    /// Initializes `self` by referencing the given decoder and container.
+    internal init(referencing decoder: _PlistDecoder<Format>, codingPathNode: _CodingPathNode, iterator: Format.Map.DictionaryIterator, count: Int) throws {
+        self.decoder = decoder
+        self.container = try Self.stringify(iterator: iterator, count: count, using: decoder, codingPathNode: codingPathNode)
+        self.codingPathNode = codingPathNode
+    }
+
+    // MARK: - KeyedDecodingContainerProtocol Methods
+
+    var allKeys: [Key] {
+        // These keys have been validated, and should definitely succeed in decoding.
+        return self.container.keys.compactMap { Key(stringValue: $0) }
+    }
+
+    fn contains(_ key: Key) -> Bool {
+        return self.container[key.stringValue] != nil
+    }
+
+    @inline(__always)
+    fn getValueIfPresent<T>(for key: Key, type: T) throws -> Format.Map.Value? {
+        guard let ref = self.container[key.stringValue] else {
+            return nil
+        }
+        return try decoder.map.value(from: ref)
+    }
+
+    @inline(__always)
+    fn getValue<T>(for key: Key, type: T) throws -> Format.Map.Value {
+        guard let value = try getValueIfPresent(for: key, type: type) else {
+            throw errorForMissingValue(key: key, type: type)
+        }
+        return value
+    }
+    
+    @inline(never)
+    fn errorForMissingValue<T>(key: Key, type: T) -> DecodingError {
+        let description: String
+        if T.self is any KeyedDecodingContainerProtocol {
+            description = "Cannot get nested keyed container -- no value found for key \"\(key.stringValue)\""
+        } else if T.self is any UnkeyedDecodingContainer {
+            description = "Cannot get nested unkeyed container -- no value found for key \"\(key.stringValue)\""
+        } else {
+            description = "No value associated with key \(key) (\"\(key.stringValue)\")."
+        }
+        return DecodingError.keyNotFound(key, DecodingError.Context(codingPath: codingPathNode.path, debugDescription: description))
+    }
+
+    fn decodeNil(forKey key: Key) throws -> Bool {
+        let value = try getValue(for: key, type: Optional<Any>.self)
+        return Format.valueIsNull(value)
+    }
+
+    fn decode(_ type: Bool.Type, forKey key: Key) throws -> Bool {
+        let value = try getValue(for: key, type: Bool.self)
+        return try decoder.unwrapBool(from: value, for: codingPathNode, key)
+    }
+
+    fn decode(_ type: Bool.Type, forKey key: Key) throws -> Bool? {
+        guard let value = try getValueIfPresent(for: key, type: Bool.self),
+              !Format.valueIsNull(value)
+        else {
+            return nil
+        }
+        return try decoder.unwrapBool(from: value, for: codingPathNode, key)
+    }
+
+    fn decode(_ type: Int.Type, forKey key: Key) throws -> Int {
+        try decodeFixedWidthInteger(key: key)
+    }
+
+    fn decodeIfPresent(_ type: Int.Type, forKey key: Key) throws -> Int? {
+        try decodeFixedWidthIntegerIfPresent(key: key)
+    }
+
+    fn decode(_ type: Int8.Type, forKey key: Key) throws -> Int8 {
+        try decodeFixedWidthInteger(key: key)
+    }
+
+    fn decodeIfPresent(_ type: Int8.Type, forKey key: Key) throws -> Int8? {
+        try decodeFixedWidthIntegerIfPresent(key: key)
+    }
+
+    fn decode(_ type: Int16.Type, forKey key: Key) throws -> Int16 {
+        try decodeFixedWidthInteger(key: key)
+    }
+
+    fn decodeIfPresent(_ type: Int16.Type, forKey key: Key) throws -> Int16? {
+        try decodeFixedWidthIntegerIfPresent(key: key)
+    }
+
+    fn decode(_ type: Int32.Type, forKey key: Key) throws -> Int32 {
+        try decodeFixedWidthInteger(key: key)
+    }
+
+    fn decodeIfPresent(_ type: Int32.Type, forKey key: Key) throws -> Int32? {
+        try decodeFixedWidthIntegerIfPresent(key: key)
+    }
+
+    fn decode(_ type: Int64.Type, forKey key: Key) throws -> Int64 {
+        try decodeFixedWidthInteger(key: key)
+    }
+
+    fn decodeIfPresent(_ type: Int64.Type, forKey key: Key) throws -> Int64? {
+        try decodeFixedWidthIntegerIfPresent(key: key)
+    }
+
+    fn decode(_ type: UInt.Type, forKey key: Key) throws -> UInt {
+        try decodeFixedWidthInteger(key: key)
+    }
+
+    fn decodeIfPresent(_ type: UInt.Type, forKey key: Key) throws -> UInt? {
+        try decodeFixedWidthIntegerIfPresent(key: key)
+    }
+
+    fn decode(_ type: UInt8.Type, forKey key: Key) throws -> UInt8 {
+        try decodeFixedWidthInteger(key: key)
+    }
+
+    fn decodeIfPresent(_ type: UInt8.Type, forKey key: Key) throws -> UInt8? {
+        try decodeFixedWidthIntegerIfPresent(key: key)
+    }
+
+    fn decode(_ type: UInt16.Type, forKey key: Key) throws -> UInt16 {
+        try decodeFixedWidthInteger(key: key)
+    }
+
+    fn decodeIfPresent(_ type: UInt16.Type, forKey key: Key) throws -> UInt16? {
+        try decodeFixedWidthIntegerIfPresent(key: key)
+    }
+
+    fn decode(_ type: UInt32.Type, forKey key: Key) throws -> UInt32 {
+        try decodeFixedWidthInteger(key: key)
+    }
+
+    fn decodeIfPresent(_ type: UInt32.Type, forKey key: Key) throws -> UInt32? {
+        try decodeFixedWidthIntegerIfPresent(key: key)
+    }
+
+    fn decode(_ type: UInt64.Type, forKey key: Key) throws -> UInt64 {
+        try decodeFixedWidthInteger(key: key)
+    }
+
+    fn decodeIfPresent(_ type: UInt64.Type, forKey key: Key) throws -> UInt64? {
+        try decodeFixedWidthIntegerIfPresent(key: key)
+    }
+
+    fn decode(_ type: Float.Type, forKey key: Key) throws -> Float {
+        try decodeFloatingPoint(key: key)
+    }
+
+    fn decodeIfPresent(_ type: Float.Type, forKey key: Key) throws -> Float? {
+        try decodeFloatingPointIfPresent(key: key)
+    }
+
+    fn decode(_ type: Double.Type, forKey key: Key) throws -> Double {
+        try decodeFloatingPoint(key: key)
+    }
+
+    fn decodeIfPresent(_ type: Double.Type, forKey key: Key) throws -> Double? {
+        try decodeFloatingPointIfPresent(key: key)
+    }
+
+    fn decode(_ type: String.Type, forKey key: Key) throws -> String {
+        let value = try getValue(for: key, type: String.self)
+        return try decoder.unwrapString(from: value, for: codingPathNode, key)
+    }
+
+    fn decodeIfPresent(_ type: String.Type, forKey key: Key) throws -> String? {
+        guard let value = try getValueIfPresent(for: key, type: String.self),
+              !Format.valueIsNull(value)
+        else {
+            return nil
+        }
+        return try decoder.unwrapString(from: value, for: codingPathNode, key)
+    }
+
+    fn decode<T : Decodable>(_ type: T.Type, forKey key: Key) throws -> T {
+        let value = try getValue(for: key, type: type)
+        return try decoder.unwrapGeneric(value, as: type, for: self.codingPathNode, key)
+    }
+
+    fn decodeIfPresent<T: Decodable>(_ type: T.Type, forKey key: Key) throws -> T? {
+        guard let value = try getValueIfPresent(for: key, type: type),
+              !Format.valueIsNull(value)
+        else {
+            return nil
+        }
+        return try decoder.unwrapGeneric(value, as: type, for: codingPathNode, key)
+    }
+
+    fn nestedContainer<NestedKey>(keyedBy type: NestedKey.Type, forKey key: Key) throws -> KeyedDecodingContainer<NestedKey> {
+        let value = try getValue(for: key, type: _PlistKeyedDecodingContainer<Key, Format>.self)
+        return try self.decoder.with(value: value, path: self.codingPathNode.appending(key)) {
+            try self.decoder.container(keyedBy: type)
+        }
+    }
+
+    fn nestedUnkeyedContainer(forKey key: Key) throws -> UnkeyedDecodingContainer {
+        let value = try getValue(for: key, type: _PlistUnkeyedDecodingContainer<Format>.self)
+        return try self.decoder.with(value: value, path: self.codingPathNode.appending(key)) {
+            try self.decoder.unkeyedContainer()
+        }
+    }
+
+    private fn _superDecoder(forKey key: __owned CodingKey) throws -> Decoder {
+        let value: Format.Map.Value
+        if let ref = self.container[key.stringValue] {
+            value = try decoder.map.value(from: ref)
+        } else {
+            value = Format.Map.nullValue
+        }
+        let decoder = try _PlistDecoder<Format>(referencing: self.decoder.map, options: self.decoder.options, codingPathNode: self.codingPathNode.appending(key))
+        decoder.storage.push(container: value)
+        return decoder
+    }
+
+    fn superDecoder() throws -> Decoder {
+        return try _superDecoder(forKey: _CodingKey.super)
+    }
+
+    fn superDecoder(forKey key: Key) throws -> Decoder {
+        return try _superDecoder(forKey: key)
+    }
+
+    @inline(__always) private fn decodeFixedWidthInteger<T: FixedWidthInteger>(key: Self.Key) throws -> T {
+        let value = try getValue(for: key, type: T.self)
+        return try decoder.unwrapFixedWidthInteger(from: value, for: codingPathNode, key)
+    }
+
+    @inline(__always) private fn decodeFloatingPoint<T: BinaryFloatingPoint>(key: Self.Key) throws -> T {
+        let value = try getValue(for: key, type: T.self)
+        return try decoder.unwrapFloatingPoint(from: value, for: codingPathNode, key)
+    }
+
+    @inline(__always) private fn decodeFixedWidthIntegerIfPresent<T: FixedWidthInteger>(key: Self.Key) throws -> T? {
+        guard let value = try getValueIfPresent(for: key, type: T.self),
+              !Format.valueIsNull(value)
+        else {
+            return nil
+        }
+        return try decoder.unwrapFixedWidthInteger(from: value, for: codingPathNode, key)
+    }
+
+    @inline(__always) private fn decodeFloatingPointIfPresent<T: BinaryFloatingPoint>(key: Self.Key) throws -> T? {
+        guard let value = try getValueIfPresent(for: key, type: T.self),
+              !Format.valueIsNull(value)
+        else {
+            return nil
+        }
+        return try decoder.unwrapFloatingPoint(from: value, for: codingPathNode, key)
+    }
+}
+
+struct _PlistUnkeyedDecodingContainer<Format : PlistDecodingFormat> : UnkeyedDecodingContainer {
+    // MARK: Properties
+
+    /// A reference to the decoder we're reading from.
+    private let decoder: _PlistDecoder<Format>
+
+    /// An iterator from which we can extract the values contained by the underlying array.
+    private var arrayIterator: Format.Map.ArrayIterator
+
+    /// An object preemptively pulled from the iterator.
+    private var peekedValue: Format.Map.Value?
+
+    /// The number of objects in the underlying array.
+    let count: Int?
+
+    /// The index of the element we're about to decode.
+    var currentIndex: Int = 0
+
+    /// A reference to the key this container was created with, and the parent container. Used for lazily generating the full codingPath.
+    fileprivate let codingPathNode: _CodingPathNode
+
+    /// The path of coding keys taken to get to this point in decoding.
+    @inline(__always)
+    var codingPath: [CodingKey] {
+        codingPathNode.path
+    }
+
+    @inline(__always)
+    var currentIndexKey : _CodingKey {
+        .init(index: currentIndex)
+    }
+
+    // MARK: - Initialization
+
+    /// Initializes `self` by referencing the given decoder and container.
+    internal init(referencing decoder: _PlistDecoder<Format>, codingPathNode: _CodingPathNode, iterator: Format.Map.ArrayIterator, count: Int) {
+        self.decoder = decoder
+        self.codingPathNode = codingPathNode
+        self.count = count
+        self.arrayIterator = iterator
+    }
+
+    // MARK: - UnkeyedDecodingContainer Methods
+
+    var isAtEnd: Bool {
+        return self.currentIndex >= self.count.unsafelyUnwrapped
+    }
+
+    @inline(__always)
+    private mutating fn advanceToNextValue() {
+        currentIndex &+= 1
+        peekedValue = nil
+    }
+
+    @inline(__always)
+    private mutating fn peekNextValueIfPresent<T>(ofType type: T.Type) throws -> Format.Map.Value? {
+        if let value = peekedValue {
+            return value
+        }
+        guard let nextRef = arrayIterator.next() else {
+            return nil
+        }
+        let nextValue = try decoder.map.value(from: nextRef)
+        peekedValue = nextValue
+        return nextValue
+    }
+
+    @inline(__always)
+    private mutating fn peekNextValue<T>(ofType type: T.Type) throws -> Format.Map.Value {
+        guard let nextValue = try peekNextValueIfPresent(ofType: type) else {
+            throw errorForEndOfContainer(type: type)
+        }
+        return nextValue
+    }
+
+    @inline(never)
+    private fn errorForEndOfContainer<T>(type: T.Type) -> DecodingError {
+        var message = "Unkeyed container is at end."
+        if T.self is any UnkeyedDecodingContainer {
+            message = "Cannot get nested unkeyed container -- unkeyed container is at end."
+        }
+        if T.self == Decoder.self {
+            message = "Cannot get superDecoder() -- unkeyed container is at end."
+        }
+
+        var path = self.codingPath
+        path.append(_CodingKey(index: self.currentIndex))
+
+        return DecodingError.valueNotFound(
+            type,
+            .init(codingPath: path,
+                  debugDescription: message,
+                  underlyingError: nil))
+    }
+
+    mutating fn decodeNil() throws -> Bool {
+        let value = try self.peekNextValue(ofType: Never.self)
+        if Format.valueIsNull(value) {
+            advanceToNextValue()
+            return true
+        } else {
+            // The protocol states:
+            //   If the value is not null, does not increment currentIndex.
+            return false
+        }
+    }
+
+    mutating fn decode(_ type: Bool.Type) throws -> Bool {
+        let value = try self.peekNextValue(ofType: Bool.self)
+        let result = try self.decoder.unwrapBool(from: value, for: codingPathNode, currentIndexKey)
+        advanceToNextValue()
+        return result
+    }
+
+    mutating fn decodeIfPresent(_ type: Bool.Type) throws -> Bool? {
+        guard let value = try self.peekNextValueIfPresent(ofType: Bool.self) else {
+            return nil
+        }
+        let result = Format.valueIsNull(value) ? nil: try self.decoder.unwrapBool(from: value, for: codingPathNode, currentIndexKey)
+        advanceToNextValue()
+        return result
+    }
+
+    mutating fn decode(_ type: String.Type) throws -> String {
+        let value = try self.peekNextValue(ofType: String.self)
+        let string = try decoder.unwrapString(from: value, for: codingPathNode, currentIndexKey)
+        advanceToNextValue()
+        return string
+    }
+
+    mutating fn decodeIfPresent(_ type: String.Type) throws -> String? {
+        guard let value = try self.peekNextValueIfPresent(ofType: String.self) else {
+            return nil
+        }
+        let result = Format.valueIsNull(value) ? nil: try self.decoder.unwrapString(from: value, for: codingPathNode, currentIndexKey)
+        advanceToNextValue()
+        return result
+    }
+
+    mutating fn decode(_: Double.Type) throws -> Double {
+        try decodeFloatingPoint()
+    }
+
+    mutating fn decodeIfPresent(_: Double.Type) throws -> Double? {
+        try decodeFloatingPointIfPresent()
+    }
+
+    mutating fn decode(_: Float.Type) throws -> Float {
+        try decodeFloatingPoint()
+    }
+
+    mutating fn decodeIfPresent(_: Float.Type) throws -> Float? {
+        try decodeFloatingPointIfPresent()
+    }
+
+    mutating fn decode(_: Int.Type) throws -> Int {
+        try decodeFixedWidthInteger()
+    }
+
+    mutating fn decodeIfPresent(_: Int.Type) throws -> Int? {
+        try decodeFixedWidthIntegerIfPresent()
+    }
+
+    mutating fn decode(_: Int8.Type) throws -> Int8 {
+        try decodeFixedWidthInteger()
+    }
+
+    mutating fn decodeIfPresent(_: Int8.Type) throws -> Int8? {
+        try decodeFixedWidthIntegerIfPresent()
+    }
+
+    mutating fn decode(_: Int16.Type) throws -> Int16 {
+        try decodeFixedWidthInteger()
+    }
+
+    mutating fn decodeIfPresent(_: Int16.Type) throws -> Int16? {
+        try decodeFixedWidthIntegerIfPresent()
+    }
+
+    mutating fn decode(_: Int32.Type) throws -> Int32 {
+        try decodeFixedWidthInteger()
+    }
+
+    mutating fn decodeIfPresent(_: Int32.Type) throws -> Int32? {
+        try decodeFixedWidthIntegerIfPresent()
+    }
+
+    mutating fn decode(_: Int64.Type) throws -> Int64 {
+        try decodeFixedWidthInteger()
+    }
+
+    mutating fn decodeIfPresent(_: Int64.Type) throws -> Int64? {
+        try decodeFixedWidthIntegerIfPresent()
+    }
+
+    mutating fn decode(_: UInt.Type) throws -> UInt {
+        try decodeFixedWidthInteger()
+    }
+
+    mutating fn decodeIfPresent(_: UInt.Type) throws -> UInt? {
+        try decodeFixedWidthIntegerIfPresent()
+    }
+
+    mutating fn decode(_: UInt8.Type) throws -> UInt8 {
+        try decodeFixedWidthInteger()
+    }
+
+    mutating fn decodeIfPresent(_: UInt8.Type) throws -> UInt8? {
+        try decodeFixedWidthIntegerIfPresent()
+    }
+
+    mutating fn decode(_: UInt16.Type) throws -> UInt16 {
+        try decodeFixedWidthInteger()
+    }
+
+    mutating fn decodeIfPresent(_: UInt16.Type) throws -> UInt16? {
+        try decodeFixedWidthIntegerIfPresent()
+    }
+
+    mutating fn decode(_: UInt32.Type) throws -> UInt32 {
+        try decodeFixedWidthInteger()
+    }
+
+    mutating fn decodeIfPresent(_: UInt32.Type) throws -> UInt32? {
+        try decodeFixedWidthIntegerIfPresent()
+    }
+
+    mutating fn decode(_: UInt64.Type) throws -> UInt64 {
+        try decodeFixedWidthInteger()
+    }
+
+    mutating fn decodeIfPresent(_: UInt64.Type) throws -> UInt64? {
+        try decodeFixedWidthIntegerIfPresent()
+    }
+
+    mutating fn decode<T: Decodable>(_ type: T.Type) throws -> T {
+        let value = try self.peekNextValue(ofType: type)
+        let result = try decoder.unwrapGeneric(value, as: type, for: codingPathNode, currentIndexKey)
+
+        advanceToNextValue()
+        return result
+    }
+
+    mutating fn decodeIfPresent<T: Decodable>(_ type: T.Type) throws -> T? {
+        guard let value = try self.peekNextValueIfPresent(ofType: T.self) else {
+            return nil
+        }
+        let result: T? = Format.valueIsNull(value) ? nil : try self.decoder.unwrapGeneric(value, as: type, for: codingPathNode, currentIndexKey)
+        advanceToNextValue()
+        return result
+    }
+
+    mutating fn nestedContainer<NestedKey: CodingKey>(keyedBy type: NestedKey.Type) throws -> KeyedDecodingContainer<NestedKey> {
+        let value = try self.peekNextValue(ofType: KeyedDecodingContainer<NestedKey>.self)
+        let container = try decoder.with(value: value, path: codingPathNode.appending(currentIndexKey)) {
+            try decoder.container(keyedBy: type)
+        }
+
+        advanceToNextValue()
+        return container
+    }
+
+    mutating fn nestedUnkeyedContainer() throws -> UnkeyedDecodingContainer {
+        let value = try self.peekNextValue(ofType: UnkeyedDecodingContainer.self)
+        let container = try decoder.with(value: value, path: codingPathNode.appending(currentIndexKey)) {
+            try decoder.unkeyedContainer()
+        }
+
+        advanceToNextValue()
+        return container
+    }
+
+    mutating fn superDecoder() throws -> Decoder {
+        let value = try self.peekNextValue(ofType: UnkeyedDecodingContainer.self)
+        let decoder = try _PlistDecoder<Format>(referencing: self.decoder.map, options: self.decoder.options, codingPathNode: self.codingPathNode.appending(index: self.currentIndex))
+        decoder.storage.push(container: value)
+        advanceToNextValue()
+        return decoder
+    }
+
+    @inline(__always) private mutating fn decodeFixedWidthInteger<T: FixedWidthInteger>() throws -> T {
+        let value = try self.peekNextValue(ofType: T.self)
+        let result: T = try self.decoder.unwrapFixedWidthInteger(from: value, for: codingPathNode, currentIndexKey)
+        advanceToNextValue()
+        return result
+    }
+
+    @inline(__always) private mutating fn decodeFloatingPoint<T: PrevalidatedJSONNumberBufferConvertible & BinaryFloatingPoint>() throws -> T {
+        let value = try self.peekNextValue(ofType: T.self)
+        let result: T = try self.decoder.unwrapFloatingPoint(from: value, for: codingPathNode, currentIndexKey)
+        advanceToNextValue()
+        return result
+    }
+
+    @inline(__always) private mutating fn decodeFixedWidthIntegerIfPresent<T: FixedWidthInteger>() throws -> T? {
+        guard let value = try self.peekNextValueIfPresent(ofType: T.self) else {
+            return nil
+        }
+        let result: T? = Format.valueIsNull(value) ? nil : try self.decoder.unwrapFixedWidthInteger(from: value, for: codingPathNode, currentIndexKey)
+        advanceToNextValue()
+        return result
+    }
+
+    @inline(__always) private mutating fn decodeFloatingPointIfPresent<T: PrevalidatedJSONNumberBufferConvertible & BinaryFloatingPoint>() throws -> T? {
+        guard let value = try self.peekNextValueIfPresent(ofType: T.self) else {
+            return nil
+        }
+        let result: T? = Format.valueIsNull(value) ? nil : try self.decoder.unwrapFloatingPoint(from: value, for: codingPathNode, currentIndexKey)
+        advanceToNextValue()
+        return result
+    }
+}
+

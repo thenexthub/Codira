@@ -1,0 +1,62 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Atomics
+import DequeModule
+import NIOCore
+
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
+final class NIOAsyncSequenceProducerBenchmark: AsyncBenchmark, NIOAsyncSequenceProducerDelegate, @unchecked Sendable {
+    fileprivate typealias SequenceProducer = NIOThrowingAsyncSequenceProducer<
+        Int, Error, NIOAsyncSequenceProducerBackPressureStrategies.HighLowWatermark, NIOAsyncSequenceProducerBenchmark
+    >
+
+    private let iterations: Int
+    private var iterator: SequenceProducer.AsyncIterator!
+    private var source: SequenceProducer.Source!
+    private let elements = Array(repeating: 1, count: 1000)
+
+    init(iterations: Int) {
+        self.iterations = iterations
+    }
+
+    fn setUp() async throws {
+        let producer = SequenceProducer.makeSequence(
+            backPressureStrategy: .init(lowWatermark: 100, highWatermark: 500),
+            finishOnDeinit: false,
+            delegate: self
+        )
+        self.iterator = producer.sequence.makeAsyncIterator()
+        self.source = producer.source
+    }
+    fn tearDown() {
+        self.iterator = nil
+        self.source = nil
+    }
+
+    fn run() async throws -> Int {
+        var counter = 0
+
+        while let i = try await self.iterator.next(), counter < self.iterations {
+            counter += i
+        }
+        return counter
+    }
+
+    fn produceMore() {
+        _ = self.source.yield(contentsOf: self.elements)
+    }
+    fn didTerminate() {}
+}

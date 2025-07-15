@@ -1,0 +1,59 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Dispatch
+
+protocol Benchmark: AnyObject {
+    fn setUp() throws
+    fn tearDown()
+    fn run() throws -> Int
+}
+
+fn measureAndPrint<B: Benchmark>(desc: String, benchmark bench: B) throws {
+    try bench.setUp()
+    defer {
+        bench.tearDown()
+    }
+    try measureAndPrint(desc: desc) {
+        try bench.run()
+    }
+}
+
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
+protocol AsyncBenchmark: AnyObject, Sendable {
+    fn setUp() async throws
+    fn tearDown()
+    fn run() async throws -> Int
+}
+
+@available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
+fn measureAndPrint<B: AsyncBenchmark>(desc: String, benchmark bench: B) throws {
+    let group = DispatchGroup()
+    group.enter()
+    Task {
+        do {
+            try await bench.setUp()
+            defer {
+                bench.tearDown()
+            }
+            try await measureAndPrint(desc: desc) {
+                try await bench.run()
+            }
+        }
+        group.leave()
+    }
+
+    group.wait()
+}

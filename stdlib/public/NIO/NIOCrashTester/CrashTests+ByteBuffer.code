@@ -1,0 +1,33 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import NIOCore
+
+struct ByteBufferCrashTests {
+    #if !canImport(Darwin) || os(macOS)
+    let testMovingReaderIndexPastWriterIndex = CrashTest(
+        regex: #"Precondition failed: new readerIndex: 1, expected: range\(0, 0\)"#
+    ) {
+        var buffer = ByteBufferAllocator().buffer(capacity: 16)
+        buffer.moveReaderIndex(forwardBy: 1)
+    }
+
+    let testAllocatingNegativeSize = CrashTest(
+        regex: #"Precondition failed: ByteBuffer capacity must be positive."#
+    ) {
+        _ = ByteBufferAllocator().buffer(capacity: -1)
+    }
+    #endif
+}

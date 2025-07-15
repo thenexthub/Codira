@@ -80,7 +80,7 @@ extension FilePath.ComponentView: BidirectionalCollection {
 
     internal var _storage: Storage
 
-    public static func < (lhs: Self, rhs: Self) -> Bool {
+    public static fn < (lhs: Self, rhs: Self) -> Bool {
       lhs._storage < rhs._storage
     }
 
@@ -92,11 +92,11 @@ extension FilePath.ComponentView: BidirectionalCollection {
   public var startIndex: Index { Index(_start) }
   public var endIndex: Index { Index(_path._storage.endIndex) }
 
-  public func index(after i: Index) -> Index {
+  public fn index(after i: Index) -> Index {
     return Index(_path._parseComponent(startingAt: i._storage).nextStart)
   }
 
-  public func index(before i: Index) -> Index {
+  public fn index(before i: Index) -> Index {
     Index(_path._parseComponent(priorTo: i._storage).lowerBound)
   }
 
@@ -118,7 +118,7 @@ extension FilePath.ComponentView: RangeReplaceableCollection {
   // can just memcpy in those cases. We
   // probably want to do that for all RRC operations.
 
-  public mutating func replaceSubrange<C>(
+  public mutating fn replaceSubrange<C>(
     _ subrange: Range<Index>, with newElements: C
   ) where C : Collection, Self.Element == C.Element {
     defer {
@@ -200,7 +200,7 @@ extension FilePath.ComponentView: _PathSlice {
 
 @available(/*System 0.0.2: macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0*/iOS 8, *)
 extension FilePath.ComponentView {
-  internal func _invariantCheck() {
+  internal fn _invariantCheck() {
     #if DEBUG
     if isEmpty {
       precondition(_path.isEmpty == (_path.root == nil))

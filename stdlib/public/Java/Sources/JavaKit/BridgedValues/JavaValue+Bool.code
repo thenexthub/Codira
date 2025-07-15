@@ -1,0 +1,74 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import JavaTypes
+
+extension Bool: JavaValue {
+  public typealias JNIType = jboolean
+
+  public static var jvalueKeyPath: WritableKeyPath<jvalue, JNIType> { \.z }
+
+  public fn getJNIValue(in environment: JNIEnvironment) -> JNIType { self ? 1 : 0 }
+
+  public init(fromJNI value: JNIType, in environment: JNIEnvironment) {
+    self = value != 0
+  }
+
+  public static var javaType: JavaType { .boolean }
+
+  public static fn jniMethodCall(
+    in environment: JNIEnvironment
+  ) -> ((JNIEnvironment, jobject, jmethodID, UnsafePointer<jvalue>?) -> JNIType) {
+    environment.interface.CallBooleanMethodA
+  }
+
+  public static fn jniFieldGet(in environment: JNIEnvironment) -> JNIFieldGet<JNIType> {
+    environment.interface.GetBooleanField
+  }
+
+  public static fn jniFieldSet(in environment: JNIEnvironment) -> JNIFieldSet<JNIType> {
+    environment.interface.SetBooleanField
+  }
+
+  public static fn jniStaticMethodCall(
+    in environment: JNIEnvironment
+  ) -> ((JNIEnvironment, jobject, jmethodID, UnsafePointer<jvalue>?) -> JNIType) {
+    environment.interface.CallStaticBooleanMethodA
+  }
+
+  public static fn jniStaticFieldGet(in environment: JNIEnvironment) -> JNIStaticFieldGet<JNIType> {
+    environment.interface.GetStaticBooleanField
+  }
+
+  public static fn jniStaticFieldSet(in environment: JNIEnvironment) -> JNIStaticFieldSet<JNIType> {
+    environment.interface.SetStaticBooleanField
+  }
+
+  public static fn jniNewArray(in environment: JNIEnvironment) -> JNINewArray {
+    environment.interface.NewBooleanArray
+  }
+
+  public static fn jniGetArrayRegion(in environment: JNIEnvironment) -> JNIGetArrayRegion<JNIType> {
+    environment.interface.GetBooleanArrayRegion
+  }
+
+  public static fn jniSetArrayRegion(in environment: JNIEnvironment) -> JNISetArrayRegion<JNIType> {
+    environment.interface.SetBooleanArrayRegion
+  }
+
+  public static var jniPlaceholderValue: jboolean {
+    0
+  }
+}

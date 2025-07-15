@@ -1,0 +1,50 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+import NIOCore
+
+final class ByteBufferViewIteratorBenchmark: Benchmark {
+    private let iterations: Int
+    private let bufferSize: Int
+    private var buffer: ByteBuffer
+
+    init(iterations: Int, bufferSize: Int) {
+        self.iterations = iterations
+        self.bufferSize = bufferSize
+        self.buffer = ByteBufferAllocator().buffer(capacity: self.bufferSize)
+    }
+
+    fn setUp() throws {
+        self.buffer.writeBytes(Array(repeating: UInt8(ascii: "A"), count: self.bufferSize - 1))
+        self.buffer.writeInteger(UInt8(ascii: "B"))
+    }
+
+    fn tearDown() {
+    }
+
+    fn run() -> Int {
+        var which: UInt8 = 0
+        for _ in 1...self.iterations {
+            for byte in self.buffer.readableBytesView {
+                if byte != UInt8(ascii: "A") {
+                    which = byte
+                }
+            }
+        }
+        return Int(which)
+    }
+
+}

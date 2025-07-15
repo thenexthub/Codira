@@ -1,0 +1,41 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import NIOCore
+
+public enum VsockChannelEvents {
+    /// Fired as an outbound event when NIO would like to ask itself to bind the socket.
+    ///
+    /// This flow for connect is required because we cannot extend `enum SocketAddress` without
+    /// breaking public API.
+    public struct BindToAddress: Hashable, Sendable {
+        public var address: VsockAddress
+
+        public init(_ address: VsockAddress) {
+            self.address = address
+        }
+    }
+
+    /// Fired as an outbound event when NIO would like to ask itself to connect the socket.
+    ///
+    /// This flow for connect is required because we cannot extend `enum SocketAddress` without
+    /// breaking public API.
+    public struct ConnectToAddress: Hashable, Sendable {
+        public var address: VsockAddress
+
+        public init(_ address: VsockAddress) {
+            self.address = address
+        }
+    }
+}

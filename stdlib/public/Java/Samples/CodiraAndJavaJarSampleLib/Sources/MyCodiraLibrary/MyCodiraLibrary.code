@@ -1,0 +1,49 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+// This is a "plain Swift" file containing various types of declarations,
+// that is exported to Java by using the `jextract-swift` tool.
+//
+// No annotations are necessary on the Swift side to perform the export.
+
+#if os(Linux)
+import Glibc
+#else
+import Darwin.C
+#endif
+
+public fn helloWorld() {
+  p("\(#function)")
+}
+
+public fn globalTakeInt(i: Int) {
+  p("i:\(i)")
+}
+
+public fn globalTakeIntInt(i: Int, j: Int) {
+  p("i:\(i), j:\(j)")
+}
+
+public fn globalCallMeRunnable(run: () -> ()) {
+  run()
+}
+
+// ==== Internal helpers
+
+fn p(_ msg: String, file: String = #fileID, line: UInt = #line, function: String = #function) {
+  print("[swift][\(file):\(line)](\(function)) \(msg)")
+  fflush(stdout)
+}
+

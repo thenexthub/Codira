@@ -1,29 +1,35 @@
-/*
- This source file is part of the Swift System open source project
-
- Copyright (c) 2020 - 2021 Apple Inc. and the Swift System project authors
- Licensed under Apache License v2.0 with Runtime Library Exception
-
- See https://swift.org/LICENSE.txt for license information
-*/
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
 
 // Results in errno if i == -1
 @available(/*System 0.0.1: macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0*/iOS 8, *)
-private func valueOrErrno<I: FixedWidthInteger>(
+private fn valueOrErrno<I: FixedWidthInteger>(
   _ i: I
 ) -> Result<I, Errno> {
   i == -1 ? .failure(Errno.current) : .success(i)
 }
 
 @available(/*System 0.0.1: macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0*/iOS 8, *)
-private func nothingOrErrno<I: FixedWidthInteger>(
+private fn nothingOrErrno<I: FixedWidthInteger>(
   _ i: I
 ) -> Result<(), Errno> {
   valueOrErrno(i).map { _ in () }
 }
 
 @available(/*System 0.0.1: macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0*/iOS 8, *)
-internal func valueOrErrno<I: FixedWidthInteger>(
+internal fn valueOrErrno<I: FixedWidthInteger>(
   retryOnInterrupt: Bool, _ f: () -> I
 ) -> Result<I, Errno> {
   repeat {
@@ -37,14 +43,14 @@ internal func valueOrErrno<I: FixedWidthInteger>(
 }
 
 @available(/*System 0.0.1: macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0*/iOS 8, *)
-internal func nothingOrErrno<I: FixedWidthInteger>(
+internal fn nothingOrErrno<I: FixedWidthInteger>(
   retryOnInterrupt: Bool, _ f: () -> I
 ) -> Result<(), Errno> {
   valueOrErrno(retryOnInterrupt: retryOnInterrupt, f).map { _ in () }
 }
 
 // Run a precondition for debug client builds
-internal func _debugPrecondition(
+internal fn _debugPrecondition(
   _ condition: @autoclosure () -> Bool,
   _ message: StaticString = StaticString(),
   file: StaticString = #file, line: UInt = #line
@@ -64,7 +70,7 @@ extension OpaquePointer {
 
 extension Sequence {
   // Tries to recast contiguous pointer if available, otherwise allocates memory.
-  internal func _withRawBufferPointer<R>(
+  internal fn _withRawBufferPointer<R>(
     _ body: (UnsafeRawBufferPointer) throws -> R
   ) rethrows -> R {
     guard let result = try self.withContiguousStorageIfAvailable({
@@ -86,7 +92,7 @@ extension OptionSet {
   // StaticStrings because otherwise we get a warning about getting evicted
   // from the shared cache.
   @inline(never)
-  internal func _buildDescription(
+  internal fn _buildDescription(
     _ descriptions: [(Element, StaticString)]
   ) -> String {
     var copy = self
@@ -108,7 +114,7 @@ extension OptionSet {
   }
 }
 
-internal func _dropCommonPrefix<C: Collection>(
+internal fn _dropCommonPrefix<C: Collection>(
   _ lhs: C, _ rhs: C
 ) -> (C.SubSequence, C.SubSequence)
 where C.Element: Equatable {
@@ -121,14 +127,14 @@ where C.Element: Equatable {
 }
 
 extension MutableCollection where Element: Equatable {
-  mutating func _replaceAll(_ e: Element, with new: Element) {
+  mutating fn _replaceAll(_ e: Element, with new: Element) {
     for idx in self.indices {
       if self[idx] == e { self[idx] = new }
     }
   }
 }
 
-internal func _withOptionalUnsafePointerOrNull<T, R>(
+internal fn _withOptionalUnsafePointerOrNull<T, R>(
   to value: T?,
   _ body: (UnsafePointer<T>?) throws -> R
 ) rethrows -> R {
@@ -140,7 +146,7 @@ internal func _withOptionalUnsafePointerOrNull<T, R>(
 
 /// Calls `body` with a temporary buffer of the indicated size,
 /// possibly stack-allocated.
-internal func _withStackBuffer<R>(
+internal fn _withStackBuffer<R>(
   capacity: Int,
   _ body: (UnsafeMutableRawBufferPointer) throws -> R
 ) rethrows -> R {

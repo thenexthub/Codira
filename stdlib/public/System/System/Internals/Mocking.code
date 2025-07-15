@@ -41,13 +41,13 @@ internal struct Trace {
 
   internal var isEmpty: Bool { firstEntry >= entries.count }
 
-  internal mutating func dequeue() -> Entry? {
+  internal mutating fn dequeue() -> Entry? {
     guard !self.isEmpty else { return nil }
     defer { firstEntry += 1 }
     return entries[firstEntry]
   }
 
-  fileprivate mutating func add(_ e: Entry) {
+  fileprivate mutating fn add(_ e: Entry) {
     entries.append(e)
   }
 }
@@ -87,7 +87,7 @@ internal var currentMockingDriver: MockingDriver? {
 extension MockingDriver {
   /// Enables mocking for the duration of `f` with a clean trace queue
   /// Restores prior mocking status and trace queue after execution
-  internal static func withMockingEnabled(
+  internal static fn withMockingEnabled(
     _ f: (MockingDriver) throws -> ()
   ) rethrows {
     let priorMocking = currentMockingDriver
@@ -145,13 +145,13 @@ internal var forceWindowsPaths: Bool? {
 
 #if ENABLE_MOCKING
 // Strip the mock_system prefix and the arg list suffix
-private func originalSyscallName(_ function: String) -> String {
+private fn originalSyscallName(_ function: String) -> String {
   // `function` must be of format `system_<name>(<parameters>)`
   precondition(function.starts(with: "system_"))
   return String(function.dropFirst("system_".count).prefix { $0 != "(" })
 }
 
-private func mockImpl(
+private fn mockImpl(
   name: String,
   path: UnsafePointer<CInterop.PlatformChar>?,
   _ args: [AnyHashable]
@@ -183,18 +183,18 @@ private func mockImpl(
   return 0
 }
 
-internal func _mock(
+internal fn _mock(
   name: String = #function, path: UnsafePointer<CInterop.PlatformChar>? = nil, _ args: AnyHashable...
 ) -> CInt {
   return mockImpl(name: name, path: path, args)
 }
-internal func _mockInt(
+internal fn _mockInt(
   name: String = #function, path: UnsafePointer<CInterop.PlatformChar>? = nil, _ args: AnyHashable...
 ) -> Int {
   Int(mockImpl(name: name, path: path, args))
 }
 
-internal func _mockOffT(
+internal fn _mockOffT(
   name: String = #function, path: UnsafePointer<CInterop.PlatformChar>? = nil, _ args: AnyHashable...
 ) -> _COffT {
   _COffT(mockImpl(name: name, path: path, args))
@@ -203,7 +203,7 @@ internal func _mockOffT(
 
 // Force paths to be treated as Windows syntactically if `enabled` is
 // true, and as POSIX syntactically if not.
-internal func _withWindowsPaths(enabled: Bool, _ body: () -> ()) {
+internal fn _withWindowsPaths(enabled: Bool, _ body: () -> ()) {
   #if ENABLE_MOCKING
   MockingDriver.withMockingEnabled { driver in
     driver.forceWindowsSyntaxForPaths = enabled

@@ -1,0 +1,64 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+internal import NIOCore
+internal import NTP
+
+@available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
+final class NTPHandler: ChannelDuplexHandler, Sendable {
+    typealias InboundIn = AddressedEnvelope<ByteBuffer>
+    typealias InboundOut = NTPResponse
+    typealias OutboundIn = NTPPacket
+    typealias OutboundOut = ByteBuffer
+
+    static let shared = NTPHandler()
+
+    private init() {}
+
+    fn channelRead(context: ChannelHandlerContext, data: NIOAny) {
+        var buf = self.unwrapInboundIn(data)
+        guard let p = buf.data.readNTPRequestBuffer() else {
+            context.fireErrorCaught(NTPError.notEnoughBytes)
+            return
+        }
+        var response: NTPResponse
+        do {
+            response = try NTPResponse(p)
+        } catch {
+            context.fireErrorCaught(
+                NTPError.versionNotSupported
+            )
+            return
+        }
+        context.fireChannelRead(self.wrapInboundOut(response))
+    }
+
+    fn write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
+        let packet = self.unwrapOutboundIn(data)
+        var buffer = context.channel.allocator.buffer(capacity: 64)
+        buffer.writeNTPRequestBuffer(packet)
+        context.write(
+            Self.wrapOutboundOut(buffer),
+            promise: promise
+        )
+    }
+}
+
+@available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
+extension ChannelPipeline.SynchronousOperations {
+    fn configureNTPPipeline() throws {
+        try self.addHandler(NTPHandler.shared)
+    }
+}

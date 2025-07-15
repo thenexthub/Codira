@@ -79,7 +79,7 @@ extension RawIORequest {
         set { rawValue.flags = newValue.rawValue }
     }
 
-    @inlinable public mutating func linkToNextRequest() {
+    @inlinable public mutating fn linkToNextRequest() {
         flags = Flags(rawValue: flags.rawValue | Flags.linkRequest.rawValue)
     }
 
@@ -168,14 +168,14 @@ extension RawIORequest {
 
 extension RawIORequest {
     @inlinable
-    static func nop() -> RawIORequest {
+    static fn nop() -> RawIORequest {
         var req: RawIORequest = RawIORequest()
         req.operation = .nop
         return req
     }
 
     @inlinable
-    static func withTimeoutRequest<R>(
+    static fn withTimeoutRequest<R>(
         linkedTo opEntry: UnsafeMutablePointer<io_uring_sqe>,
         in timeoutEntry: UnsafeMutablePointer<io_uring_sqe>,
         duration: Duration, 

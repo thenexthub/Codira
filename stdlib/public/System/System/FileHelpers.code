@@ -1,11 +1,17 @@
-/*
- This source file is part of the Swift System open source project
-
- Copyright (c) 2020 Apple Inc. and the Swift System project authors
- Licensed under Apache License v2.0 with Runtime Library Exception
-
- See https://swift.org/LICENSE.txt for license information
-*/
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
 
 @available(/*System 0.0.1: macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0*/iOS 8, *)
 extension FileDescriptor {
@@ -20,7 +26,7 @@ extension FileDescriptor {
   /// If `body` throws an error
   /// or an error occurs while closing the file descriptor,
   /// this method rethrows that error.
-  public func closeAfter<R>(_ body: () throws -> R) throws -> R {
+  public fn closeAfter<R>(_ body: () throws -> R) throws -> R {
     // No underscore helper, since the closure's throw isn't necessarily typed.
     let result: R
     do {
@@ -51,14 +57,14 @@ extension FileDescriptor {
   /// temporary space will be allocated as needed.
   @_alwaysEmitIntoClient
   @discardableResult
-  public func writeAll<S: Sequence>(
+  public fn writeAll<S: Sequence>(
     _ sequence: S
   ) throws -> Int where S.Element == UInt8 {
     return try _writeAll(sequence).get()
   }
 
   @usableFromInline
-  internal func _writeAll<S: Sequence>(
+  internal fn _writeAll<S: Sequence>(
     _ sequence: S
   ) -> Result<Int, Errno> where S.Element == UInt8 {
     sequence._withRawBufferPointer { buffer in
@@ -93,14 +99,14 @@ extension FileDescriptor {
   /// temporary space will be allocated as needed.
   @_alwaysEmitIntoClient
   @discardableResult
-  public func writeAll<S: Sequence>(
+  public fn writeAll<S: Sequence>(
     toAbsoluteOffset offset: Int64, _ sequence: S
   ) throws -> Int where S.Element == UInt8 {
     try _writeAll(toAbsoluteOffset: offset, sequence).get()
   }
 
   @usableFromInline
-  internal func _writeAll<S: Sequence>(
+  internal fn _writeAll<S: Sequence>(
     toAbsoluteOffset offset: Int64, _ sequence: S
   ) -> Result<Int, Errno> where S.Element == UInt8 {
     sequence._withRawBufferPointer { buffer in

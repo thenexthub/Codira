@@ -1,0 +1,30 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import JavaKit
+import JavaMath
+
+let jvm = try JavaVirtualMachine.shared()
+
+do {
+  let sieveClass = try JavaClass<SieveOfEratosthenes>(environment: jvm.environment())
+  for prime in sieveClass.findPrimes(100)! {
+    print("Found prime: \(prime.intValue())")
+  }
+
+  _ = try JavaClass<RoundingMode>().HALF_UP // can import a Java enum value
+} catch {
+  print("Failure: \(error)")
+}

@@ -89,7 +89,7 @@ extension FilePath {
   /// only during the execution of this method.
   /// Don't try to store the pointer for later use.
   @_alwaysEmitIntoClient
-  public func withPlatformString<Result>(
+  public fn withPlatformString<Result>(
     _ body: (UnsafePointer<CInterop.PlatformChar>) throws -> Result
   ) rethrows -> Result {
     return try withCString(body)
@@ -107,7 +107,7 @@ extension FilePath {
   /// The pointer passed as an argument to `body` is valid
   /// only during the execution of this method.
   /// Don't try to store the pointer for later use.
-  public func withPlatformString<Result>(
+  public fn withPlatformString<Result>(
     _ body: (UnsafePointer<CInterop.PlatformChar>) throws -> Result
   ) rethrows -> Result {
     return try _withPlatformString(body)
@@ -197,7 +197,7 @@ extension FilePath.Component {
   /// The pointer passed as an argument to `body` is valid
   /// only during the execution of this method.
   /// Don't try to store the pointer for later use.
-  public func withPlatformString<Result>(
+  public fn withPlatformString<Result>(
     _ body: (UnsafePointer<CInterop.PlatformChar>) throws -> Result
   ) rethrows -> Result {
     try _withPlatformString(body)
@@ -284,7 +284,7 @@ extension FilePath.Root {
   /// The pointer passed as an argument to `body` is valid
   /// only during the execution of this method.
   /// Don't try to store the pointer for later use.
-  public func withPlatformString<Result>(
+  public fn withPlatformString<Result>(
     _ body: (UnsafePointer<CInterop.PlatformChar>) throws -> Result
   ) rethrows -> Result {
     try _withPlatformString(body)
@@ -600,7 +600,7 @@ extension FilePath {
 
   /// For backwards compatibility only. This function is equivalent to
   /// the preferred `withPlatformString`.
-  public func withCString<Result>(
+  public fn withCString<Result>(
     _ body: (UnsafePointer<CChar>) throws -> Result
   ) rethrows -> Result {
     return try _withPlatformString(body)

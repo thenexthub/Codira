@@ -1,0 +1,120 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import JavaTypes
+
+extension Float: JavaValue {
+  public typealias JNIType = jfloat
+
+  public static var jvalueKeyPath: WritableKeyPath<jvalue, JNIType> { \.f }
+
+  public static var javaType: JavaType { .float }
+
+  public static fn jniMethodCall(
+    in environment: JNIEnvironment
+  ) -> ((JNIEnvironment, jobject, jmethodID, UnsafePointer<jvalue>?) -> JNIType) {
+    environment.interface.CallFloatMethodA
+  }
+
+  public static fn jniFieldGet(in environment: JNIEnvironment) -> JNIFieldGet<JNIType> {
+    environment.interface.GetFloatField
+  }
+
+  public static fn jniFieldSet(in environment: JNIEnvironment) -> JNIFieldSet<JNIType> {
+    environment.interface.SetFloatField
+  }
+
+  public static fn jniStaticMethodCall(
+    in environment: JNIEnvironment
+  ) -> ((JNIEnvironment, jobject, jmethodID, UnsafePointer<jvalue>?) -> JNIType) {
+    environment.interface.CallStaticFloatMethodA
+  }
+
+  public static fn jniStaticFieldGet(in environment: JNIEnvironment) -> JNIStaticFieldGet<JNIType> {
+    environment.interface.GetStaticFloatField
+  }
+
+  public static fn jniStaticFieldSet(in environment: JNIEnvironment) -> JNIStaticFieldSet<JNIType> {
+    environment.interface.SetStaticFloatField
+  }
+
+  public static fn jniNewArray(in environment: JNIEnvironment) -> JNINewArray {
+    environment.interface.NewFloatArray
+  }
+
+  public static fn jniGetArrayRegion(in environment: JNIEnvironment) -> JNIGetArrayRegion<JNIType> {
+    environment.interface.GetFloatArrayRegion
+  }
+
+  public static fn jniSetArrayRegion(in environment: JNIEnvironment) -> JNISetArrayRegion<JNIType> {
+    environment.interface.SetFloatArrayRegion
+  }
+
+  public static var jniPlaceholderValue: jfloat {
+    0
+  }
+}
+
+extension Double: JavaValue {
+  public typealias JNIType = jdouble
+
+  public static var jvalueKeyPath: WritableKeyPath<jvalue, JNIType> { \.d }
+
+  public static var javaType: JavaType { .double }
+
+  public static fn jniMethodCall(
+    in environment: JNIEnvironment
+  ) -> ((JNIEnvironment, jobject, jmethodID, UnsafePointer<jvalue>?) -> JNIType) {
+    environment.interface.CallDoubleMethodA
+  }
+
+  public static fn jniFieldGet(in environment: JNIEnvironment) -> JNIFieldGet<JNIType> {
+    environment.interface.GetDoubleField
+  }
+
+  public static fn jniFieldSet(in environment: JNIEnvironment) -> JNIFieldSet<JNIType> {
+    environment.interface.SetDoubleField
+  }
+
+  public static fn jniStaticMethodCall(
+    in environment: JNIEnvironment
+  ) -> ((JNIEnvironment, jobject, jmethodID, UnsafePointer<jvalue>?) -> JNIType) {
+    environment.interface.CallStaticDoubleMethodA
+  }
+
+  public static fn jniStaticFieldGet(in environment: JNIEnvironment) -> JNIStaticFieldGet<JNIType> {
+    environment.interface.GetStaticDoubleField
+  }
+
+  public static fn jniStaticFieldSet(in environment: JNIEnvironment) -> JNIStaticFieldSet<JNIType> {
+    environment.interface.SetStaticDoubleField
+  }
+
+  public static fn jniNewArray(in environment: JNIEnvironment) -> JNINewArray {
+    environment.interface.NewDoubleArray
+  }
+
+  public static fn jniGetArrayRegion(in environment: JNIEnvironment) -> JNIGetArrayRegion<JNIType> {
+    environment.interface.GetDoubleArrayRegion
+  }
+
+  public static fn jniSetArrayRegion(in environment: JNIEnvironment) -> JNISetArrayRegion<JNIType> {
+    environment.interface.SetDoubleArrayRegion
+  }
+
+  public static var jniPlaceholderValue: jdouble {
+    0
+  }
+}

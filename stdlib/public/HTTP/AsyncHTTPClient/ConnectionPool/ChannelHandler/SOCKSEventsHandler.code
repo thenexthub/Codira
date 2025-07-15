@@ -1,0 +1,118 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import NIOCore
+import NIOSOCKS
+
+final class SOCKSEventsHandler: ChannelInboundHandler, RemovableChannelHandler {
+    typealias InboundIn = NIOAny
+
+    enum State {
+        // transitions to channelActive or failed
+        case initialized
+        // transitions to socksEstablished or failed
+        case channelActive(Scheduled<Void>)
+        // final success state
+        case socksEstablished
+        // final success state
+        case failed(Error)
+    }
+
+    private var socksEstablishedPromise: EventLoopPromise<Void>?
+    var socksEstablishedFuture: EventLoopFuture<Void>? {
+        self.socksEstablishedPromise?.futureResult
+    }
+
+    private let deadline: NIODeadline
+    private var state: State = .initialized
+
+    init(deadline: NIODeadline) {
+        self.deadline = deadline
+    }
+
+    fn handlerAdded(context: ChannelHandlerContext) {
+        self.socksEstablishedPromise = context.eventLoop.makePromise(of: Void.self)
+
+        if context.channel.isActive {
+            self.connectionStarted(context: context)
+        }
+    }
+
+    fn handlerRemoved(context: ChannelHandlerContext) {
+        struct NoResult: Error {}
+        self.socksEstablishedPromise!.fail(NoResult())
+    }
+
+    fn channelActive(context: ChannelHandlerContext) {
+        self.connectionStarted(context: context)
+    }
+
+    fn userInboundEventTriggered(context: ChannelHandlerContext, event: Any) {
+        guard event is SOCKSProxyEstablishedEvent else {
+            return context.fireUserInboundEventTriggered(event)
+        }
+
+        switch self.state {
+        case .initialized:
+            preconditionFailure("How can we establish a SOCKS connection, if we are not connected?")
+        case .socksEstablished:
+            preconditionFailure("`SOCKSProxyEstablishedEvent` must only be fired once.")
+        case .channelActive(let scheduled):
+            self.state = .socksEstablished
+            scheduled.cancel()
+            self.socksEstablishedPromise?.succeed(())
+            context.fireUserInboundEventTriggered(event)
+        case .failed:
+            // potentially a race with the timeout...
+            break
+        }
+    }
+
+    fn errorCaught(context: ChannelHandlerContext, error: Error) {
+        switch self.state {
+        case .initialized:
+            self.state = .failed(error)
+            self.socksEstablishedPromise?.fail(error)
+        case .channelActive(let scheduled):
+            scheduled.cancel()
+            self.state = .failed(error)
+            self.socksEstablishedPromise?.fail(error)
+        case .socksEstablished, .failed:
+            break
+        }
+        context.fireErrorCaught(error)
+    }
+
+    private fn connectionStarted(context: ChannelHandlerContext) {
+        guard case .initialized = self.state else {
+            return
+        }
+
+        let scheduled = context.eventLoop.assumeIsolated().scheduleTask(deadline: self.deadline) {
+            switch self.state {
+            case .initialized, .channelActive:
+                // close the connection, if the handshake timed out
+                context.close(mode: .all, promise: nil)
+                let error = HTTPClientError.socksHandshakeTimeout
+                self.state = .failed(error)
+                self.socksEstablishedPromise?.fail(error)
+            case .failed, .socksEstablished:
+                break
+            }
+        }
+
+        self.state = .channelActive(scheduled)
+    }
+}

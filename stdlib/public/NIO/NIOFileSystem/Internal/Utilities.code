@@ -1,0 +1,46 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import SystemPackage
+
+@usableFromInline
+internal final class Ref<Value> {
+    @usableFromInline
+    var value: Value
+    @inlinable
+    init(_ value: Value) {
+        self.value = value
+    }
+}
+
+extension String {
+    init(randomAlphaNumericOfLength length: Int) {
+        precondition(length > 0)
+
+        let characters = (0..<length).lazy.map {
+            _ in Array.alphaNumericValues.randomElement()!
+        }
+        self = String(decoding: characters, as: UTF8.self)
+    }
+}
+
+extension Array where Element == UInt8 {
+    fileprivate static let alphaNumericValues: [UInt8] = {
+        var alphaNumericValues = Array(UInt8(ascii: "a")...UInt8(ascii: "z"))
+        alphaNumericValues.append(contentsOf: UInt8(ascii: "A")...UInt8(ascii: "Z"))
+        alphaNumericValues.append(contentsOf: UInt8(ascii: "0")...UInt8(ascii: "9"))
+        return alphaNumericValues
+    }()
+}

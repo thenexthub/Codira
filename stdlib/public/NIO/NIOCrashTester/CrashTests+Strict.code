@@ -1,0 +1,33 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+#if !canImport(Darwin) || os(macOS)
+import NIOCore
+import NIOPosix
+
+struct StrictCrashTests {
+    let testEventLoopSheduleAfterShutdown = CrashTest(
+        regex: "Fatal error: Cannot schedule tasks on an EventLoop that has already shut down."
+    ) {
+        setenv("SWIFTNIO_STRICT", "1", 1)
+        let elg = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        let loop = elg.next()
+        try! elg.syncShutdownGracefully()
+        loop.execute {
+            print("Crash should happen before this line is printed.")
+        }
+    }
+}
+#endif

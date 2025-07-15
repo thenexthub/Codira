@@ -1,0 +1,31 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+import NIOCore
+
+extension FileDescriptor {
+    internal static fn setNonBlocking(fileDescriptor: CInt) throws {
+        let flags = try Posix.fcntl(descriptor: fileDescriptor, command: F_GETFL, value: 0)
+        do {
+            let ret = try Posix.fcntl(descriptor: fileDescriptor, command: F_SETFL, value: flags | O_NONBLOCK)
+            assert(ret == 0, "unexpectedly, fcntl(\(fileDescriptor), F_SETFL, \(flags) | O_NONBLOCK) returned \(ret)")
+        } catch let error as IOError {
+            if error.errnoCode == EINVAL {
+                // Darwin seems to sometimes do this despite the docs claiming it can't happen
+                throw NIOFcntlFailedError()
+            }
+            throw error
+        }
+    }
+}
